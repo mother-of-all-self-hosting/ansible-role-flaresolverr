@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: 2025 Suguru Hirahara
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+version = 1
+
+# Computer-generated files and other files which cannot be copyrighted
+[[annotations]]
+path = [
+    ".ansible-lint",
+    ".github/workflows/ansible-lint.yml",
+    ".github/renovate.json",
+    ".gitignore",
+    ".yamllint.yml",
+    "meta/main.yml",
+    "meta/.galaxy_install_info"
+]
+SPDX-FileCopyrightText = "NONE"
+SPDX-License-Identifier = "CC0-1.0"

@@ -34,7 +34,6 @@ flaresolverr_base_path: "{{ flaresolverr_identifier }}"
 flaresolverr_container_image: "{{ flaresolverr_container_image_registry_prefix }}flaresolverr/flaresolverr:{{ flaresolverr_container_image_tag }}"
 flaresolverr_container_image_tag: "{{ flaresolverr_version }}"
 flaresolverr_container_image_registry_prefix: ghcr.io/
-flaresolverr_container_image_force_pull: "{{ flaresolverr_container_image.endswith(':latest') }}"
 
 # The base container network. It will be auto-created by this role if it doesn't exist already.
 flaresolverr_container_network: "{{ flaresolverr_identifier }}"

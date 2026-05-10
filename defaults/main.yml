@@ -8,9 +8,15 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 ---
+# Project source code URL:  https://github.com/FlareSolverr/FlareSolverr
+
 flaresolverr_enabled: true
 
 flaresolverr_identifier: flaresolverr
+flaresolverr_base_path: "/{{ flaresolverr_identifier }}"
+
+# renovate: datasource=docker depName=ghcr.io/flaresolverr/flaresolverr versioning=semver
+flaresolverr_version: v3.4.6
 
 # UID and GID for the files and folders belonging to the Flaresolverr service.
 # These values are distinct from the UID and GID used when running the Docker container.
@@ -22,11 +28,6 @@ flaresolverr_gid: ""
 flaresolverr_docker_uid: "1000"
 flaresolverr_docker_gid: "1000"
 
-flaresolverr_timezone: "Etc/UTC"
-
-# renovate: datasource=docker depName=ghcr.io/flaresolverr/flaresolverr versioning=semver
-flaresolverr_version: v3.4.6
-
 # The hostname at which flaresolverr is served.
 flaresolverr_hostname: ""
 
@@ -34,33 +35,14 @@ flaresolverr_hostname: ""
 # This value must either be `/` or not end with a slash (e.g. `/flaresolverr`).
 flaresolverr_path_prefix: /
 
-flaresolverr_base_path: "{{ flaresolverr_identifier }}"
-
 flaresolverr_container_image: "{{ flaresolverr_container_image_registry_prefix }}flaresolverr/flaresolverr:{{ flaresolverr_container_image_tag }}"
 flaresolverr_container_image_tag: "{{ flaresolverr_version }}"
-flaresolverr_container_image_registry_prefix: ghcr.io/
+flaresolverr_container_image_registry_prefix: "{{ flaresolverr_container_image_registry_prefix_upstream }}"
+flaresolverr_container_image_registry_prefix_upstream: "{{ flaresolverr_container_image_registry_prefix_upstream_default }}"
+flaresolverr_container_image_registry_prefix_upstream_default: ghcr.io/
 
 # The base container network. It will be auto-created by this role if it doesn't exist already.
 flaresolverr_container_network: "{{ flaresolverr_identifier }}"
-
-# A list of additional container networks that the container would be connected to.
-# The role does not create these networks, so make sure they already exist.
-flaresolverr_container_additional_networks: "{{ (flaresolverr_container_additional_networks_default + flaresolverr_container_additional_networks_auto + flaresolverr_container_additional_networks_custom) | unique }}"
-flaresolverr_container_additional_networks_default: []
-flaresolverr_container_additional_networks_auto: []
-flaresolverr_container_additional_networks_custom: []
-
-# List of systemd services that the Flaresolverr systemd service depends on
-flaresolverr_systemd_required_services_list: "{{ (flaresolverr_systemd_required_services_list_default + flaresolverr_systemd_required_services_list_auto + flaresolverr_systemd_required_services_list_custom) | unique }}"
-flaresolverr_systemd_required_services_list_default: "{{ [devture_systemd_docker_base_docker_service_name] if devture_systemd_docker_base_docker_service_name else [] }}"
-flaresolverr_systemd_required_services_list_auto: []
-flaresolverr_systemd_required_services_list_custom: []
-
-# List of systemd services that the Flaresolverr systemd service wants
-flaresolverr_systemd_wanted_services_list: "{{ (flaresolverr_systemd_wanted_services_list_default + flaresolverr_systemd_wanted_services_list_auto + flaresolverr_systemd_wanted_services_list_custom) | unique }}"
-flaresolverr_systemd_wanted_services_list_default: []
-flaresolverr_systemd_wanted_services_list_auto: []
-flaresolverr_systemd_wanted_services_list_custom: []
 
 # The port Flaresolverr is running on inside the container
 flaresolverr_container_http_port: 8191
@@ -70,6 +52,28 @@ flaresolverr_container_http_port: 8191
 #
 # Takes an "<ip>:<port>" or "<port>" value (e.g. "127.0.0.1:5055"), or empty string to not expose.
 flaresolverr_container_http_bind_port: ""
+
+# A list of additional container networks that the container would be connected to.
+# The role does not create these networks, so make sure they already exist.
+flaresolverr_container_additional_networks: "{{ (flaresolverr_container_additional_networks_default + flaresolverr_container_additional_networks_auto + flaresolverr_container_additional_networks_custom) | unique }}"
+flaresolverr_container_additional_networks_default: []
+flaresolverr_container_additional_networks_auto: []
+flaresolverr_container_additional_networks_custom: []
+
+# A list of additional "volumes" to mount in the container.
+#
+# See the `--mount` documentation for the `docker run` command.
+#
+# Example:
+# flaresolverr_container_additional_volumes:
+#   - type: bind
+#     src: /path/on/the/host
+#     dst: /data
+#   - type: bind
+#     src: /another-path/on/the/host
+#     dst: /read-only
+#     options: readonly
+flaresolverr_container_additional_volumes: []
 
 # To inject your own other container labels, see `flaresolverr_container_labels_additional_labels`.
 flaresolverr_container_labels_traefik_enabled: true
@@ -92,31 +96,22 @@ flaresolverr_container_labels_traefik_tls_certResolver: default # noqa var-namin
 #   another.label="here"
 flaresolverr_container_labels_additional_labels: ""
 
-# flaresolverr_container_additional_environment_variables contains a multiline string with additional environment variables to pass to the container.
-#
-# Example:
-# flaresolverr_container_additional_environment_variables: |
-#   VAR=1
-#   ANOTHER=value
-flaresolverr_container_additional_environment_variables: ""
+# A list of extra arguments to pass to the container (`docker create` command)
+flaresolverr_container_extra_arguments: "{{ flaresolverr_container_extra_arguments_auto + flaresolverr_container_extra_arguments_custom }}"
+flaresolverr_container_extra_arguments_auto: []
+flaresolverr_container_extra_arguments_custom: []
 
-# A list of additional "volumes" to mount in the container.
-#
-# See the `--mount` documentation for the `docker run` command.
-#
-# Example:
-# flaresolverr_container_additional_volumes:
-#   - type: bind
-#     src: /path/on/the/host
-#     dst: /data
-#   - type: bind
-#     src: /another-path/on/the/host
-#     dst: /read-only
-#     options: readonly
-flaresolverr_container_additional_volumes: []
+# List of systemd services that the Flaresolverr systemd service depends on
+flaresolverr_systemd_required_services_list: "{{ (flaresolverr_systemd_required_services_list_default + flaresolverr_systemd_required_services_list_auto + flaresolverr_systemd_required_services_list_custom) | unique }}"
+flaresolverr_systemd_required_services_list_default: "{{ [devture_systemd_docker_base_docker_service_name] if devture_systemd_docker_base_docker_service_name else [] }}"
+flaresolverr_systemd_required_services_list_auto: []
+flaresolverr_systemd_required_services_list_custom: []
 
-# A list of extra arguments to pass to the container
-flaresolverr_container_extra_arguments: []
+# List of systemd services that the Flaresolverr systemd service wants
+flaresolverr_systemd_wanted_services_list: "{{ (flaresolverr_systemd_wanted_services_list_default + flaresolverr_systemd_wanted_services_list_auto + flaresolverr_systemd_wanted_services_list_custom) | unique }}"
+flaresolverr_systemd_wanted_services_list_default: []
+flaresolverr_systemd_wanted_services_list_auto: []
+flaresolverr_systemd_wanted_services_list_custom: []
 
 # Controls how long to wait for the container to stop gracefully before killing it.
 flaresolverr_container_stop_grace_time_seconds: "{{ devture_systemd_docker_base_container_stop_grace_time_seconds }}"
@@ -148,6 +143,16 @@ flaresolverr_container_cleanup_command: |
   done;
   echo "Failed to remove stale container {{ flaresolverr_identifier }} after {{ flaresolverr_container_cleanup_timeout_seconds }} attempts" >&2;
   exit 1
+
+flaresolverr_timezone: "Etc/UTC"
+
+# flaresolverr_container_additional_environment_variables contains a multiline string with additional environment variables to pass to the container.
+#
+# Example:
+# flaresolverr_container_additional_environment_variables: |
+#   VAR=1
+#   ANOTHER=value
+flaresolverr_container_additional_environment_variables: ""
 
 # flaresolverr_restart_necessary controls whether the Flaresolverr systemd
 # service will be restarted (when true) or merely started (when false) by the

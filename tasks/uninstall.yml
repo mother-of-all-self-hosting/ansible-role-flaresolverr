@@ -1,9 +1,10 @@
+# SPDX-FileCopyrightText: 2023 Slavi Pantaleev
 # SPDX-FileCopyrightText: 2025 sudo-Tiz
+# SPDX-FileCopyrightText: 2025, 2026 Suguru Hirahara
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 ---
-
 - name: Check existence of FlareSolverr systemd service
   ansible.builtin.stat:
     path: "{{ devture_systemd_docker_base_systemd_path }}/{{ flaresolverr_identifier }}.service"
@@ -24,7 +25,26 @@
         path: "{{ devture_systemd_docker_base_systemd_path }}/{{ flaresolverr_identifier }}.service"
         state: absent
 
-    - name: Ensure FlareSolverr path doesn't exist
+    - name: Ensure FlareSolverr container network does not exist
+      when: flaresolverr_container_network_deletion_enabled
+      block:
+        - name: Ensure FlareSolverr container network does not exist via community.docker.docker_network
+          when: devture_systemd_docker_base_container_network_creation_method == 'ansible-module'
+          community.docker.docker_network:
+            name: "{{ flaresolverr_container_network }}"
+            state: absent
+          register: flaresolverr_network_deletion_result
+
+        - name: Ensure FlareSolverr container network does not exist via ansible.builtin.command
+          when: devture_systemd_docker_base_container_network_creation_method == 'command'
+          ansible.builtin.command:
+            cmd: >-
+              {{ devture_systemd_docker_base_host_command_docker }} network rm
+              {{ flaresolverr_container_network }}
+          register: flaresolverr_network_deletion_result
+          changed_when: flaresolverr_container_network in flaresolverr_network_deletion_result.stdout
+
+    - name: Ensure FlareSolverr path does not exist
       ansible.builtin.file:
         path: "{{ flaresolverr_base_path }}"
         state: absent

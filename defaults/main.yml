@@ -18,13 +18,13 @@ flaresolverr_base_path: "/{{ flaresolverr_identifier }}"
 # renovate: datasource=docker depName=ghcr.io/flaresolverr/flaresolverr versioning=semver
 flaresolverr_version: v3.4.6
 
-# UID and GID for the files and folders belonging to the Flaresolverr service.
+# UID and GID for the files and folders belonging to the FlareSolverr service.
 # These values are distinct from the UID and GID used when running the Docker container.
 flaresolverr_uid: ""
 flaresolverr_gid: ""
 
 # User for the Docker container.
-# Flaresolverr must run as the 'flaresolverr' user with UID 1000 and GID 1000.
+# FlareSolverr must run as the 'flaresolverr' user with UID 1000 and GID 1000.
 flaresolverr_docker_uid: "1000"
 flaresolverr_docker_gid: "1000"
 
@@ -44,11 +44,11 @@ flaresolverr_container_image_registry_prefix_upstream_default: ghcr.io/
 # The base container network. It will be auto-created by this role if it doesn't exist already.
 flaresolverr_container_network: "{{ flaresolverr_identifier }}"
 
-# The port Flaresolverr is running on inside the container
+# The port FlareSolverr is running on inside the container
 flaresolverr_container_http_port: 8191
 
 # Controls whether the container exposes a port (tcp/5055 in the container)
-# that can be used to access Flaresolverr from outside the container
+# that can be used to access FlareSolverr from outside the container
 #
 # Takes an "<ip>:<port>" or "<port>" value (e.g. "127.0.0.1:5055"), or empty string to not expose.
 flaresolverr_container_http_bind_port: ""
@@ -101,13 +101,13 @@ flaresolverr_container_extra_arguments: "{{ flaresolverr_container_extra_argumen
 flaresolverr_container_extra_arguments_auto: []
 flaresolverr_container_extra_arguments_custom: []
 
-# List of systemd services that the Flaresolverr systemd service depends on
+# List of systemd services that the FlareSolverr systemd service depends on
 flaresolverr_systemd_required_services_list: "{{ (flaresolverr_systemd_required_services_list_default + flaresolverr_systemd_required_services_list_auto + flaresolverr_systemd_required_services_list_custom) | unique }}"
 flaresolverr_systemd_required_services_list_default: "{{ [devture_systemd_docker_base_docker_service_name] if devture_systemd_docker_base_docker_service_name else [] }}"
 flaresolverr_systemd_required_services_list_auto: []
 flaresolverr_systemd_required_services_list_custom: []
 
-# List of systemd services that the Flaresolverr systemd service wants
+# List of systemd services that the FlareSolverr systemd service wants
 flaresolverr_systemd_wanted_services_list: "{{ (flaresolverr_systemd_wanted_services_list_default + flaresolverr_systemd_wanted_services_list_auto + flaresolverr_systemd_wanted_services_list_custom) | unique }}"
 flaresolverr_systemd_wanted_services_list_default: []
 flaresolverr_systemd_wanted_services_list_auto: []
@@ -154,7 +154,7 @@ flaresolverr_timezone: "Etc/UTC"
 #   ANOTHER=value
 flaresolverr_container_additional_environment_variables: ""
 
-# flaresolverr_restart_necessary controls whether the Flaresolverr systemd
+# flaresolverr_restart_necessary controls whether the FlareSolverr systemd
 # service will be restarted (when true) or merely started (when false) by the
 # systemd service manager role (when conditional restart is enabled).
 #

@@ -6,9 +6,9 @@ SPDX-FileCopyrightText: 2025, 2026 Suguru Hirahara
 SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 
-# Flaresolverr Ansible role
+# FlareSolverr Ansible role
 
-This is an [Ansible](https://www.ansible.com/) role which installs [Flaresolverr](https://flaresolverr.dev/) to run as a [Docker](https://www.docker.com/) container wrapped in a systemd service.
+This is an [Ansible](https://www.ansible.com/) role which installs [FlareSolverr](https://flaresolverr.dev/) to run as a [Docker](https://www.docker.com/) container wrapped in a systemd service.
 
 This role _implicitly_ depends on:
 
@@ -21,7 +21,7 @@ For an Ansible playbook which integrates this role and makes it easier to use, s
 
 ## Limitations
 
-This role configures **Flaresolverr** securely by:
+This role configures **FlareSolverr** securely by:
 
 1. Running the container as a non-root user.
 2. Making the filesystem read-only.

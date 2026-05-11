@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 ---
-- name: Perform Flaresolverr installation tasks
+- name: Perform FlareSolverr installation tasks
   when: flaresolverr_enabled | bool
   tags:
     - setup-all
@@ -13,16 +13,16 @@
     - install-all
     - install-flaresolverr
   block:
-    - name: Validate Flaresolverr configuration
+    - name: Validate FlareSolverr configuration
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/validate_config.yml"
-    - name: Install Flaresolverr
+    - name: Install FlareSolverr
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/install.yml"
 
-- name: Perform Flaresolverr uninstallation tasks
+- name: Perform FlareSolverr uninstallation tasks
   when: not flaresolverr_enabled | bool
   tags:
     - setup-all
     - setup-flaresolverr
   block:
-    - name: Uninstall Flaresolverr
+    - name: Uninstall FlareSolverr
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/uninstall.yml"

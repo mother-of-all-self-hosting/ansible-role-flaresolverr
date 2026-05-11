@@ -4,27 +4,27 @@
 
 ---
 
-- name: Check existence of Flaresolverr systemd service
+- name: Check existence of FlareSolverr systemd service
   ansible.builtin.stat:
     path: "{{ devture_systemd_docker_base_systemd_path }}/{{ flaresolverr_identifier }}.service"
   register: flaresolverr_service_stat
 
-- name: Uninstall Flaresolverr systemd services and files
+- name: Uninstall FlareSolverr systemd services and files
   when: flaresolverr_service_stat.stat.exists | bool
   block:
-    - name: Ensure Flaresolverr systemd service is stopped
+    - name: Ensure FlareSolverr systemd service is stopped
       ansible.builtin.service:
         name: "{{ flaresolverr_identifier }}"
         state: stopped
         enabled: false
         daemon_reload: true
 
-    - name: Ensure Flaresolverr systemd service does not exist
+    - name: Ensure FlareSolverr systemd service does not exist
       ansible.builtin.file:
         path: "{{ devture_systemd_docker_base_systemd_path }}/{{ flaresolverr_identifier }}.service"
         state: absent
 
-    - name: Ensure Flaresolverr path doesn't exist
+    - name: Ensure FlareSolverr path doesn't exist
       ansible.builtin.file:
         path: "{{ flaresolverr_base_path }}"
         state: absent

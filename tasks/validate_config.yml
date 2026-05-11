@@ -14,7 +14,7 @@
   with_items:
     - { "old": "flaresolverr_container_image_force_pull", "new": "<removed> (the new community.docker.docker_image_pull module handles this natively)" }
 
-- name: Fail if required Flaresolverr settings not defined
+- name: Fail if required FlareSolverr settings not defined
   ansible.builtin.fail:
     msg: >
       You need to define a required configuration setting (`{{ item }}`).
@@ -23,10 +23,10 @@
     - flaresolverr_uid
     - flaresolverr_gid
 
-- name: Validate Flaresolverr Traefik configuration
+- name: Validate FlareSolverr Traefik configuration
   when: flaresolverr_container_labels_traefik_enabled | bool
   block:
-    - name: Fail if required Flaresolverr Traefik settings not defined
+    - name: Fail if required FlareSolverr Traefik settings not defined
       ansible.builtin.fail:
         msg: >-
           You need to define a required configuration setting (`{{ item }}`).

@@ -15,7 +15,7 @@ flaresolverr_enabled: true
 flaresolverr_identifier: flaresolverr
 flaresolverr_base_path: "/{{ flaresolverr_identifier }}"
 
-# renovate: datasource=docker depName=ghcr.io/flaresolverr/flaresolverr versioning=semver
+# renovate: datasource=docker depName=ghcr.io/flaresolverr/flaresolverr
 flaresolverr_version: v3.4.6
 
 # UID and GID for the files and folders belonging to the FlareSolverr service.

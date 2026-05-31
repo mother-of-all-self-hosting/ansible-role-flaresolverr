@@ -16,7 +16,7 @@ flaresolverr_identifier: flaresolverr
 flaresolverr_base_path: "/{{ flaresolverr_identifier }}"
 
 # renovate: datasource=docker depName=ghcr.io/flaresolverr/flaresolverr
-flaresolverr_version: v3.4.6
+flaresolverr_version: v3.5.0
 
 # UID and GID for the files and folders belonging to the FlareSolverr service.
 # These values are distinct from the UID and GID used when running the Docker container.

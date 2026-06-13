@@ -97,6 +97,9 @@ flaresolverr_container_labels_traefik_tls_certResolver: default # noqa var-namin
 #   another.label="here"
 flaresolverr_container_labels_additional_labels: ""
 
+# Specify the size of the container's tmpfs volume
+flaresolverr_container_tmpfs_tmp_size: 128m
+
 # A list of extra arguments to pass to the container (`docker create` command)
 flaresolverr_container_extra_arguments: "{{ flaresolverr_container_extra_arguments_auto + flaresolverr_container_extra_arguments_custom }}"
 flaresolverr_container_extra_arguments_auto: []

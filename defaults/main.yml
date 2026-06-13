@@ -78,8 +78,11 @@ flaresolverr_container_additional_networks_custom: []
 #     options: readonly
 flaresolverr_container_additional_volumes: []
 
+# flaresolverr_container_labels_traefik_enabled controls whether labels to assist a Traefik reverse-proxy will be attached to the container.
+# See `../templates/labels.j2` for details.
+#
 # To inject your own other container labels, see `flaresolverr_container_labels_additional_labels`.
-flaresolverr_container_labels_traefik_enabled: true
+flaresolverr_container_labels_traefik_enabled: false
 flaresolverr_container_labels_traefik_docker_network: "{{ flaresolverr_container_network }}"
 flaresolverr_container_labels_traefik_hostname: "{{ flaresolverr_hostname }}"
 # The path prefix must either be `/` or not end with a slash (e.g. `/flaresolverr`).

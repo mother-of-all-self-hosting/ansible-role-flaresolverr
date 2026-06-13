@@ -153,13 +153,8 @@ flaresolverr_container_cleanup_command: |
 # Specify the timezone
 flaresolverr_environment_variables_tz: UTC
 
-# flaresolverr_container_additional_environment_variables contains a multiline string with additional environment variables to pass to the container.
-#
-# Example:
-# flaresolverr_container_additional_environment_variables: |
-#   VAR=1
-#   ANOTHER=value
-flaresolverr_container_additional_environment_variables: ""
+# Additional environment variables.
+flaresolverr_environment_variables_additional_variables: ""
 
 # flaresolverr_restart_necessary controls whether the FlareSolverr systemd
 # service will be restarted (when true) or merely started (when false) by the

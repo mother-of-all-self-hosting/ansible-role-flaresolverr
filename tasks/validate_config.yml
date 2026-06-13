@@ -23,6 +23,8 @@
   with_items:
     - flaresolverr_uid
     - flaresolverr_gid
+    - flaresolverr_path_prefix
+    - flaresolverr_container_network
 
 - name: Validate FlareSolverr Traefik configuration
   when: flaresolverr_container_labels_traefik_enabled | bool

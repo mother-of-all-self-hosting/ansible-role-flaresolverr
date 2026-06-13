@@ -23,25 +23,25 @@ Environment="HOME={{ devture_systemd_docker_base_systemd_unit_home_path }}"
 ExecStartPre={{ devture_systemd_docker_base_host_command_sh }} -c '{{ flaresolverr_container_cleanup_command | trim | replace("\n", " ") }}'
 
 ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
-			--rm \
-			--name={{ flaresolverr_identifier }} \
-			--log-driver=none \
-			--user={{ flaresolverr_docker_uid }}:{{ flaresolverr_docker_gid }} \
-			--cap-drop=ALL \
-			--network={{ flaresolverr_container_network }} \
-			{% if flaresolverr_container_http_bind_port %}
-			-p {{ flaresolverr_container_http_bind_port }}:{{ flaresolverr_container_http_port }} \
-			{% endif %}
-			--env-file={{ flaresolverr_base_path }}/env \
-			--label-file={{ flaresolverr_base_path }}/labels \
-			--tmpfs=/tmp:rw,noexec,nosuid,size={{ flaresolverr_container_tmpfs_tmp_size }} \
-			{% for volume in flaresolverr_container_additional_volumes %}
-			--mount type={{ volume.type | default('bind' if '/' in volume.src else 'volume') }},src={{ volume.src }},dst={{ volume.dst }}{{ (',' + volume.options) if volume.options | default('') else '' }} \
-			{% endfor %}
-			{% for arg in flaresolverr_container_extra_arguments %}
-			{{ arg }} \
-			{% endfor %}
-			{{ flaresolverr_container_image }}
+      --rm \
+      --name={{ flaresolverr_identifier }} \
+      --log-driver=none \
+      --user={{ flaresolverr_docker_uid }}:{{ flaresolverr_docker_gid }} \
+      --cap-drop=ALL \
+      --network={{ flaresolverr_container_network }} \
+      {% if flaresolverr_container_http_bind_port %}
+      -p {{ flaresolverr_container_http_bind_port }}:{{ flaresolverr_container_http_port }} \
+      {% endif %}
+      --env-file={{ flaresolverr_base_path }}/env \
+      --label-file={{ flaresolverr_base_path }}/labels \
+      --tmpfs=/tmp:rw,noexec,nosuid,size={{ flaresolverr_container_tmpfs_tmp_size }} \
+      {% for volume in flaresolverr_container_additional_volumes %}
+      --mount type={{ volume.type | default('bind' if '/' in volume.src else 'volume') }},src={{ volume.src }},dst={{ volume.dst }}{{ (',' + volume.options) if volume.options | default('') else '' }} \
+      {% endfor %}
+      {% for arg in flaresolverr_container_extra_arguments %}
+      {{ arg }} \
+      {% endfor %}
+      {{ flaresolverr_container_image }}
 
 {% for network in flaresolverr_container_additional_networks %}
 ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} network connect {{ network }} {{ flaresolverr_identifier }}

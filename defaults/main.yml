@@ -87,6 +87,9 @@ flaresolverr_container_labels_traefik_priority: 0
 flaresolverr_container_labels_traefik_entrypoints: web-secure
 flaresolverr_container_labels_traefik_tls: "{{ flaresolverr_container_labels_traefik_entrypoints != 'web' }}"
 flaresolverr_container_labels_traefik_tls_certResolver: default # noqa var-naming
+flaresolverr_container_labels_traefik_middleware_basic_auth_enabled: false
+# See: https://doc.traefik.io/traefik/reference/routing-configuration/http/middlewares/basicauth/
+flaresolverr_container_labels_traefik_middleware_basic_auth_users: ""
 
 # flaresolverr_container_labels_additional_labels contains a multiline string with additional labels to add to the container label file.
 # See `../templates/labels.j2` for details.

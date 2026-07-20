@@ -154,6 +154,9 @@ flaresolverr_container_cleanup_command: |
 # Specify the timezone
 flaresolverr_environment_variables_tz: UTC
 
+# Specify the URL against which FlareSolverr makes a request on start to make sure the web browser is working
+flaresolverr_environment_variables_test_url: https://example.com
+
 # Additional environment variables.
 flaresolverr_environment_variables_additional_variables: ""
 

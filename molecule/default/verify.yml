@@ -1,0 +1,53 @@
+# SPDX-FileCopyrightText: 2026 Suguru Hirahara
+# SPDX-FileCopyrightText: 2026 spatterlight
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+---
+- name: Verify FlareSolverr systemd service
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Wait for FlareSolverr service to become active (up to 180s)
+      ansible.builtin.systemd:
+        name: flaresolverr.service
+      register: flaresolverr_service
+      until: flaresolverr_service.status.ActiveState == 'active'
+      retries: 36
+      delay: 5
+
+    - name: Assert FlareSolverr service is active
+      ansible.builtin.assert:
+        that: flaresolverr_service.status.ActiveState == 'active'
+        fail_msg: "flaresolverr.service not active ({{ flaresolverr_service.status.ActiveState }})"
+        success_msg: "flaresolverr.service is active"
+
+    - name: Retrieve FlareSolverr service log for debugging
+      when: flaresolverr_debug_service_enabled | bool
+      ansible.builtin.command:
+        cmd: journalctl -xeu flaresolverr.service
+      changed_when: false
+
+    - name: Wait for FlareSolverr HTTP endpoint to respond (up to 10m)
+      ansible.builtin.uri:
+        url: "http://localhost:8191/health"
+        method: GET
+        status_code: [200, 302]
+        follow_redirects: none
+      register: flaresolverr_endpoint
+      until: flaresolverr_endpoint.status in [200, 302]
+      retries: 120
+      delay: 5
+
+    - name: Assert FlareSolverr HTTP endpoint responds
+      ansible.builtin.assert:
+        that: flaresolverr_endpoint.status in [200, 302]
+        fail_msg: "FlareSolverr did not respond as expected ({{ flaresolverr_endpoint.status | default('no response') }})"
+        success_msg: "FlareSolverr responded with {{ flaresolverr_endpoint.status }}"
+
+    - name: Show FlareSolverr systemd service status summary
+      ansible.builtin.debug:
+        msg:
+          - "FlareSolverr systemd: {{ flaresolverr_service.status.ActiveState }}"
+          - "FlareSolverr HTTP: {{ flaresolverr_endpoint.status }}"

@@ -4,7 +4,7 @@ SPDX-FileCopyrightText: 2020 Chris van Dijk
 SPDX-FileCopyrightText: 2020 Dominik Zajac
 SPDX-FileCopyrightText: 2020 Mickaël Cornière
 SPDX-FileCopyrightText: 2020-2024 MDAD project contributors
-SPDX-FileCopyrightText: 2020-2024 Slavi Pantaleev
+SPDX-FileCopyrightText: 2020-2024, 2026 Slavi Pantaleev
 SPDX-FileCopyrightText: 2022 François Darveau
 SPDX-FileCopyrightText: 2022 Julian Foad
 SPDX-FileCopyrightText: 2022 Warren Bailey
@@ -80,10 +80,30 @@ If you use the MASH playbook, the shortcut commands with the [`just` program](ht
 
 ## Usage
 
-After running the command for installation, FlareSolverr becomes available at the specified hostname like `https://example.com`. To use it, open the URL on the browser and create an account.
+FlareSolverr has no web interface and no accounts. It is a JSON API that other services call, and it offers exactly three routes:
+
+- `GET /` — reports the version and the browser's user agent
+- `GET /health` — always answers `{"status": "ok"}`, without checking anything
+- `POST /v1` — the only route that does anything, taking a `cmd` of `sessions.create`, `sessions.list`, `sessions.destroy`, `request.get` or `request.post`
+
+Point the service that needs it (Prowlarr, Jackett, and similar) at the instance. Within the same container network that is `http://flaresolverr:8191`; from elsewhere it is whatever `flaresolverr_container_http_host_bind_port` publishes, or the hostname you exposed it at.
+
+To check by hand that it can really solve a page:
+
+```sh
+curl -s -X POST -H 'Content-Type: application/json' \
+  -d '{"cmd": "request.get", "url": "https://example.com", "maxTimeout": 60000}' \
+  http://127.0.0.1:8191/v1
+```
 
 ## Troubleshooting
 
 ### Check the service's logs
 
 You can find the logs in [systemd-journald](https://www.freedesktop.org/software/systemd/man/systemd-journald.service.html) by logging in to the server with SSH and running `journalctl -fu flaresolverr` (or how you/your playbook named the service, e.g. `mash-flaresolverr`).
+
+### Do not trust `/health`
+
+`/health` is a hard-coded `{"status": "ok"}` that never touches the browser, and `GET /` reports a user agent FlareSolverr cached while starting up. Neither notices a browser that has stopped working. A `request.get` like the one above is the only request that tells you anything.
+
+Note also that `POST /v1` answers with HTTP 200 in cases where it did not do what was asked: it is the `status` field of the JSON body that says whether a request succeeded. Chromium's own error pages come back as a perfectly successful `"status": "ok"` response, so a check worth having reads the returned content too.

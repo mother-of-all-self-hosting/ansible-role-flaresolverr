@@ -1,26 +1,62 @@
+# SPDX-FileCopyrightText: 2026 Slavi Pantaleev
 # SPDX-FileCopyrightText: 2026 spatterlight
 # SPDX-FileCopyrightText: 2026 Suguru Hirahara
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 ---
-- name: Verify FlareSolverr systemd service
+- name: Verify FlareSolverr
   hosts: all
   become: true
   gather_facts: false
+
+  vars:
+    # The scenario publishes the container's port on this port of the test host.
+    flaresolverr_verify_base_url: http://127.0.0.1:8291
+
+    # A sidecar web server on the same container network as FlareSolverr, so
+    # that the browser can be given something real to fetch without the test
+    # depending on the public internet or on a Cloudflare-protected site.
+    # Docker 28+ refuses container-to-host-port traffic over the bridge gateway,
+    # so it has to be on the network rather than on the test host.
+    flaresolverr_verify_sidecar_name: flaresolverr-molecule-sidecar
+    flaresolverr_verify_sidecar_port: 8080
+
+    # The page the sidecar serves paints this in only from JavaScript, over a
+    # placeholder that says the opposite. Both halves are asserted: anything
+    # that fetched the page without executing it - a plain HTTP client, a proxy
+    # that echoed the body back - returns the placeholder and fails.
+    flaresolverr_verify_rendered_marker: flaresolverr-molecule-42-rendered
+    flaresolverr_verify_unrendered_marker: flaresolverr-molecule-not-rendered
+
+    flaresolverr_verify_volume_marker: molecule-additional-volume-marker
+
   tasks:
-    - name: Wait for FlareSolverr service to become active (up to 180s)
-      ansible.builtin.systemd:
+    # Only leaf literals may be read this way, and only for values that describe
+    # the role itself. Anything the scenario tunes has to come from molecule.yml's
+    # group_vars, which an `include_vars` would otherwise outrank - which is why
+    # this goes into a namespace of its own rather than into the play's variables.
+    - name: Read the role's defaults for the pinned FlareSolverr version
+      ansible.builtin.include_vars:
+        file: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/defaults/main.yml"
+        name: flaresolverr_verify_role_defaults
+
+    - name: Wait for flaresolverr.service to become active (up to 180s)
+      ansible.builtin.systemd_service:
         name: flaresolverr.service
-      register: flaresolverr_service
-      until: flaresolverr_service.status.ActiveState == 'active'
+      register: flaresolverr_verify_service
+      until: flaresolverr_verify_service.status.ActiveState == 'active'
       retries: 36
       delay: 5
 
-    - name: Assert FlareSolverr service is active
+    # The systemd unit carries `Restart=always`, which makes a container that
+    # crashes on every start report `active` all the same. This assertion is here
+    # to fail early with the state printed, not as evidence that FlareSolverr
+    # works - that is what everything below is for.
+    - name: Assert flaresolverr.service is active
       ansible.builtin.assert:
-        that: flaresolverr_service.status.ActiveState == 'active'
-        fail_msg: "flaresolverr.service not active ({{ flaresolverr_service.status.ActiveState }})"
+        that: flaresolverr_verify_service.status.ActiveState == 'active'
+        fail_msg: "flaresolverr.service not active ({{ flaresolverr_verify_service.status.ActiveState }})"
         success_msg: "flaresolverr.service is active"
 
     - name: Retrieve FlareSolverr service log for debugging
@@ -29,25 +65,468 @@
         cmd: journalctl -xeu flaresolverr.service
       changed_when: false
 
-    - name: Wait for FlareSolverr HTTP endpoint to respond (up to 10m)
+    # What `Restart=always` hides is visible here instead: a unit that has been
+    # restarted has had FlareSolverr exit at least once, and FlareSolverr exits
+    # non-zero when Chromium cannot be found or cannot be launched.
+    - name: Assert flaresolverr.service has not been restarting
+      ansible.builtin.assert:
+        that: flaresolverr_verify_service.status.NRestarts | int == 0
+        fail_msg: >-
+          flaresolverr.service has been restarted {{ flaresolverr_verify_service.status.NRestarts }} time(s),
+          so FlareSolverr has been exiting - it does that when the browser cannot be started
+        success_msg: "flaresolverr.service has not had to be restarted"
+
+    # community.docker is deliberately not used anywhere in this scenario: the
+    # linting environment in CI has no collections beyond the built-in ones.
+    - name: Inspect the FlareSolverr container
+      ansible.builtin.command:
+        cmd: "docker inspect {{ flaresolverr_verify_role_defaults.flaresolverr_identifier }}"
+      changed_when: false
+      register: flaresolverr_verify_inspect_result
+
+    - name: Read the FlareSolverr container's configuration
+      ansible.builtin.set_fact:
+        flaresolverr_verify_container: "{{ (flaresolverr_verify_inspect_result.stdout | from_json)[0] }}"
+
+    # The README promises the container runs unprivileged with every capability
+    # dropped. Both come from the systemd unit template and nothing else checks
+    # that they are still being rendered.
+    - name: Assert the container runs as the role's unprivileged user with no capabilities
+      ansible.builtin.assert:
+        that:
+          - flaresolverr_verify_container.Config.User == '1000:1000'
+          - "'ALL' in (flaresolverr_verify_container.HostConfig.CapDrop | default([]))"
+        fail_msg: >-
+          The container runs as {{ flaresolverr_verify_container.Config.User | default('?') }}
+          with CapDrop {{ flaresolverr_verify_container.HostConfig.CapDrop | default([]) }}
+        success_msg: "The container runs as 1000:1000 with all capabilities dropped"
+
+    # `flaresolverr_container_additional_volumes` is only a real feature for as
+    # long as the systemd unit template keeps rendering it into `docker create`.
+    - name: Read the marker file the role bind-mounted into the container
+      ansible.builtin.command:
+        cmd: "docker exec {{ flaresolverr_verify_role_defaults.flaresolverr_identifier }} cat /config/molecule-marker"
+      changed_when: false
+      # So that a mount which never arrived is reported by the assertion below,
+      # with its explanation, rather than as a bare non-zero exit from `cat`.
+      failed_when: false
+      register: flaresolverr_verify_volume_marker_result
+
+    - name: Assert the additional volume reached the container
+      ansible.builtin.assert:
+        that: flaresolverr_verify_volume_marker_result.stdout | trim == flaresolverr_verify_volume_marker
+        fail_msg: >-
+          /config/molecule-marker in the container reads
+          '{{ flaresolverr_verify_volume_marker_result.stdout | trim }}' -
+          flaresolverr_container_additional_volumes is not reaching `docker create`
+        success_msg: "The volume from flaresolverr_container_additional_volumes_custom is mounted"
+
+    # TZ is set to something other than the role's default of UTC by this
+    # scenario, and reaches the container only through the role's env file.
+    - name: Read the timezone in force inside the container
+      ansible.builtin.command:
+        cmd: "docker exec {{ flaresolverr_verify_role_defaults.flaresolverr_identifier }} date +%Z"
+      changed_when: false
+      register: flaresolverr_verify_timezone
+
+    - name: Assert the timezone from the role's env file is in force
+      ansible.builtin.assert:
+        that: flaresolverr_verify_timezone.stdout | trim == 'JST'
+        fail_msg: >-
+          The container's timezone is {{ flaresolverr_verify_timezone.stdout | trim }},
+          not the JST that flaresolverr_environment_variables_tz asks for
+        success_msg: "The container runs in the timezone the role configured"
+
+    # Nothing answers on 8291 unless PORT from the role's env file arrived: an
+    # unconfigured FlareSolverr listens on 8191, which this scenario does not
+    # publish at all.
+    - name: Wait for FlareSolverr to answer on the port the role configured (up to 300s)
       ansible.builtin.uri:
-        url: "http://localhost:8191/health"
+        url: "{{ flaresolverr_verify_base_url }}/"
         method: GET
-        status_code: [200, 302]
+        status_code: 200
         follow_redirects: none
-      register: flaresolverr_endpoint
-      until: flaresolverr_endpoint.status in [200, 302]
-      retries: 120
+        timeout: 30
+      register: flaresolverr_verify_index
+      until: flaresolverr_verify_index.status | default(0) == 200
+      retries: 60
       delay: 5
 
-    - name: Assert FlareSolverr HTTP endpoint responds
+    - name: Assert FlareSolverr identifies itself
       ansible.builtin.assert:
-        that: flaresolverr_endpoint.status in [200, 302]
-        fail_msg: "FlareSolverr did not respond as expected ({{ flaresolverr_endpoint.status | default('no response') }})"
-        success_msg: "FlareSolverr responded with {{ flaresolverr_endpoint.status }}"
+        that: flaresolverr_verify_index.json.msg == 'FlareSolverr is ready!'
+        fail_msg: "GET / returned {{ flaresolverr_verify_index.json | default('nothing') }}"
+        success_msg: "FlareSolverr answers on the port the role configured"
 
-    - name: Show FlareSolverr systemd service status summary
+    # This is what earns (or denies) an automated version bump: the process
+    # actually running has to be the version the leaf variable Renovate edits
+    # names. FlareSolverr reports it without the leading `v` that its image tags
+    # and `flaresolverr_version` both carry.
+    - name: Assert the running FlareSolverr is the version defaults/main.yml pins
+      ansible.builtin.assert:
+        that: >-
+          flaresolverr_verify_index.json.version ==
+          (flaresolverr_verify_role_defaults.flaresolverr_version | string | regex_replace('^v', ''))
+        fail_msg: >-
+          FlareSolverr reports version {{ flaresolverr_verify_index.json.version | default('unknown') }},
+          but defaults/main.yml pins {{ flaresolverr_verify_role_defaults.flaresolverr_version }}
+        success_msg: >-
+          FlareSolverr runs {{ flaresolverr_verify_index.json.version }},
+          as pinned in defaults/main.yml
+
+    # A second, independent surface for the same claim, and the one that ties the
+    # version to the image rather than to what the process says about itself.
+    - name: Assert the image the role deployed is the version defaults/main.yml pins
+      ansible.builtin.assert:
+        that: >-
+          flaresolverr_verify_container.Config.Labels['org.opencontainers.image.version'] ==
+          (flaresolverr_verify_role_defaults.flaresolverr_version | string)
+        fail_msg: >-
+          The running image is labelled
+          {{ flaresolverr_verify_container.Config.Labels['org.opencontainers.image.version'] | default('unlabelled') }},
+          but defaults/main.yml pins {{ flaresolverr_verify_role_defaults.flaresolverr_version }}
+        success_msg: "The running image is labelled with the version defaults/main.yml pins"
+
+    # FlareSolverr caches the user agent it read out of Chromium during its
+    # startup check, so this is evidence that a browser did launch at least once.
+    - name: Assert FlareSolverr reports a Chromium user agent
+      ansible.builtin.assert:
+        that: "'Chrome/' in (flaresolverr_verify_index.json.userAgent | default(''))"
+        fail_msg: "FlareSolverr reports the user agent '{{ flaresolverr_verify_index.json.userAgent | default('') }}'"
+        success_msg: "FlareSolverr reports a Chromium user agent"
+
+    # Everything above could still be satisfied by an instance whose browser
+    # broke after it started. /health cannot tell the difference either - it is a
+    # static `{"status": "ok"}` that never touches the browser, which is why this
+    # scenario does not use it - so the checks from here on drive a real browser
+    # through the real API.
+    - name: Ensure the sidecar's document root exists
+      ansible.builtin.file:
+        path: "{{ flaresolverr_molecule_path }}/www"
+        state: directory
+        mode: "0755"
+
+    - name: Ensure the page the browser will be asked to render exists
+      ansible.builtin.copy:
+        content: |
+          <!doctype html>
+          <html>
+            <head><title>FlareSolverr Molecule probe</title></head>
+            <body>
+              <div id="probe">{{ flaresolverr_verify_unrendered_marker }}</div>
+              <script>
+                document.getElementById('probe').textContent = 'flaresolverr-molecule-' + (6 * 7) + '-rendered';
+              </script>
+            </body>
+          </html>
+        dest: "{{ flaresolverr_molecule_path }}/www/probe.html"
+        mode: "0644"
+
+    - name: Remove any leftover sidecar web server
+      ansible.builtin.command:
+        cmd: "docker rm -f {{ flaresolverr_verify_sidecar_name }}"
+      changed_when: false
+      failed_when: false
+
+    # Runs the very image the role deployed, so nothing extra has to be pulled,
+    # and joins the network the role created so that the browser can resolve it
+    # by container name.
+    - name: Start a sidecar web server on the FlareSolverr container network
+      ansible.builtin.command:
+        cmd: >-
+          docker run
+          --detach
+          --name {{ flaresolverr_verify_sidecar_name }}
+          --network {{ flaresolverr_verify_container.HostConfig.NetworkMode }}
+          --user 1000:1000
+          --workdir /srv
+          --volume {{ flaresolverr_molecule_path }}/www:/srv:ro
+          --entrypoint /usr/local/bin/python
+          {{ flaresolverr_verify_container.Config.Image }}
+          -m http.server {{ flaresolverr_verify_sidecar_port }}
+      changed_when: true
+
+    - name: Wait for the sidecar web server to serve the page (up to 60s)
+      ansible.builtin.command:
+        cmd: >-
+          docker exec {{ flaresolverr_verify_role_defaults.flaresolverr_identifier }}
+          curl --silent --show-error --fail --max-time 5
+          http://{{ flaresolverr_verify_sidecar_name }}:{{ flaresolverr_verify_sidecar_port }}/probe.html
+      changed_when: false
+      register: flaresolverr_verify_sidecar_reachable
+      until: flaresolverr_verify_sidecar_reachable.rc == 0
+      retries: 12
+      delay: 5
+
+    # Served over plain HTTP the page still says "not rendered". This is the
+    # control for the assertion further down: it establishes that the marker only
+    # appears once something has executed the page's JavaScript.
+    - name: Assert the sidecar serves the unrendered page over plain HTTP
+      ansible.builtin.assert:
+        that:
+          - flaresolverr_verify_unrendered_marker in flaresolverr_verify_sidecar_reachable.stdout
+          - flaresolverr_verify_rendered_marker not in flaresolverr_verify_sidecar_reachable.stdout
+        fail_msg: "The sidecar is not serving the probe page as written"
+        success_msg: "Fetched without a browser, the probe page carries only the unrendered marker"
+
+    - name: Create a FlareSolverr browser session
+      ansible.builtin.uri:
+        url: "{{ flaresolverr_verify_base_url }}/v1"
+        method: POST
+        body_format: json
+        body:
+          cmd: sessions.create
+        # FlareSolverr answers 500 for some failures and 200 with
+        # `"status": "error"` in the body for others, so the body is what the
+        # assertions read and both codes have to be accepted here.
+        status_code: [200, 500]
+        follow_redirects: none
+        timeout: 180
+      register: flaresolverr_verify_session_creation
+      changed_when: true
+
+    - name: Assert a browser session was created
+      ansible.builtin.assert:
+        that:
+          - flaresolverr_verify_session_creation.json.status == 'ok'
+          - flaresolverr_verify_session_creation.json.session | default('') | length > 0
+        fail_msg: >-
+          sessions.create returned {{ flaresolverr_verify_session_creation.json.status | default('nothing') }}:
+          {{ flaresolverr_verify_session_creation.json.message | default('') }}
+        success_msg: "FlareSolverr created a browser session"
+
+    - name: List FlareSolverr's browser sessions
+      ansible.builtin.uri:
+        url: "{{ flaresolverr_verify_base_url }}/v1"
+        method: POST
+        body_format: json
+        body:
+          cmd: sessions.list
+        status_code: [200, 500]
+        follow_redirects: none
+        timeout: 60
+      register: flaresolverr_verify_session_list
+
+    # Membership rather than equality, so that re-running `molecule verify`
+    # against an instance that is already up does not trip over the sessions
+    # an earlier run left behind.
+    - name: Assert the created session is among the ones FlareSolverr lists
+      ansible.builtin.assert:
+        that:
+          - flaresolverr_verify_session_list.json.status == 'ok'
+          - flaresolverr_verify_session_creation.json.session in flaresolverr_verify_session_list.json.sessions
+        fail_msg: >-
+          sessions.list returned {{ flaresolverr_verify_session_list.json.sessions | default('nothing') }},
+          which does not include {{ flaresolverr_verify_session_creation.json.session }}
+        success_msg: "FlareSolverr lists the session that was created"
+
+    # The whole point of the role: a browser that fetches a page and runs it.
+    - name: Ask FlareSolverr to fetch the sidecar's page with the browser
+      ansible.builtin.uri:
+        url: "{{ flaresolverr_verify_base_url }}/v1"
+        method: POST
+        body_format: json
+        body:
+          cmd: request.get
+          url: "http://{{ flaresolverr_verify_sidecar_name }}:{{ flaresolverr_verify_sidecar_port }}/probe.html"
+          session: "{{ flaresolverr_verify_session_creation.json.session }}"
+          maxTimeout: 120000
+        status_code: [200, 500]
+        follow_redirects: none
+        timeout: 180
+      register: flaresolverr_verify_solution
+      changed_when: false
+
+    - name: Assert the browser fetched the page and executed it
+      ansible.builtin.assert:
+        that:
+          - flaresolverr_verify_solution.json.status == 'ok'
+          - flaresolverr_verify_rendered_marker in flaresolverr_verify_solution.json.solution.response
+          - flaresolverr_verify_unrendered_marker not in flaresolverr_verify_solution.json.solution.response
+        fail_msg: >-
+          request.get returned {{ flaresolverr_verify_solution.json.status | default('nothing') }}:
+          {{ (flaresolverr_verify_solution.json.message | default(''))[:400] }}
+        success_msg: "The browser fetched the page and the DOM it returned was built by the page's JavaScript"
+
+    # Which is why the assertion above reads the body rather than the status
+    # fields: `solution.status` is not the status the target replied with. This
+    # request gets a 404 out of the sidecar and still comes back as
+    # `"status": "ok"` with `solution.status` 200, and only the content of the
+    # response tells the two apart.
+    - name: Ask FlareSolverr to fetch a page the sidecar does not have
+      ansible.builtin.uri:
+        url: "{{ flaresolverr_verify_base_url }}/v1"
+        method: POST
+        body_format: json
+        body:
+          cmd: request.get
+          url: "http://{{ flaresolverr_verify_sidecar_name }}:{{ flaresolverr_verify_sidecar_port }}/absent.html"
+          session: "{{ flaresolverr_verify_session_creation.json.session }}"
+          maxTimeout: 120000
+        status_code: [200, 500]
+        follow_redirects: none
+        timeout: 180
+      register: flaresolverr_verify_absent
+      changed_when: false
+
+    - name: Assert a different page does not satisfy the marker assertion
+      ansible.builtin.assert:
+        that:
+          - "'Error code: 404' in flaresolverr_verify_absent.json.solution.response"
+          - flaresolverr_verify_rendered_marker not in flaresolverr_verify_absent.json.solution.response
+        fail_msg: >-
+          Fetching a page that does not exist returned
+          {{ (flaresolverr_verify_absent.json.solution.response | default(''))[:200] }}
+        success_msg: "A page other than the probe page does not carry the rendered marker"
+
+    - name: Ask FlareSolverr for a command it does not have
+      ansible.builtin.uri:
+        url: "{{ flaresolverr_verify_base_url }}/v1"
+        method: POST
+        body_format: json
+        body:
+          cmd: molecule.not-a-command
+        status_code: [200, 500]
+        follow_redirects: none
+        timeout: 60
+      register: flaresolverr_verify_bad_command
+      changed_when: false
+
+    - name: Assert FlareSolverr rejects an unknown command
+      ansible.builtin.assert:
+        that:
+          - flaresolverr_verify_bad_command.json.status == 'error'
+          - "'is invalid' in flaresolverr_verify_bad_command.json.message"
+        fail_msg: >-
+          An unknown command returned
+          {{ flaresolverr_verify_bad_command.json.status | default('nothing') }}, expected an error
+        success_msg: "FlareSolverr rejects an unknown command"
+
+    - name: Destroy the FlareSolverr browser session
+      ansible.builtin.uri:
+        url: "{{ flaresolverr_verify_base_url }}/v1"
+        method: POST
+        body_format: json
+        body:
+          cmd: sessions.destroy
+          session: "{{ flaresolverr_verify_session_creation.json.session }}"
+        status_code: [200, 500]
+        follow_redirects: none
+        timeout: 120
+      register: flaresolverr_verify_session_destruction
+      changed_when: true
+
+    - name: List FlareSolverr's browser sessions after the destruction
+      ansible.builtin.uri:
+        url: "{{ flaresolverr_verify_base_url }}/v1"
+        method: POST
+        body_format: json
+        body:
+          cmd: sessions.list
+        status_code: [200, 500]
+        follow_redirects: none
+        timeout: 60
+      register: flaresolverr_verify_session_list_after
+
+    - name: Assert the session was destroyed
+      ansible.builtin.assert:
+        that:
+          - flaresolverr_verify_session_destruction.json.status == 'ok'
+          - flaresolverr_verify_session_creation.json.session not in flaresolverr_verify_session_list_after.json.sessions
+        fail_msg: >-
+          sessions.list still returns
+          {{ flaresolverr_verify_session_list_after.json.sessions | default('nothing') }} after the destruction
+        success_msg: "FlareSolverr destroyed the browser session"
+
+    # Without this, a FlareSolverr that answered every request.get with a success
+    # would satisfy the checks above just as happily. Port 8081 is picked because
+    # nothing listens on it: Chromium refuses to connect to a handful of ports
+    # (9 among them) and serves its own error page instead, which comes back as
+    # a perfectly successful solution.
+    - name: Ask FlareSolverr to fetch something that cannot be reached
+      ansible.builtin.uri:
+        url: "{{ flaresolverr_verify_base_url }}/v1"
+        method: POST
+        body_format: json
+        body:
+          cmd: request.get
+          url: "http://{{ flaresolverr_verify_sidecar_name }}:8081/"
+          maxTimeout: 30000
+        status_code: [200, 500]
+        follow_redirects: none
+        timeout: 180
+      register: flaresolverr_verify_unreachable
+      changed_when: false
+
+    - name: Assert FlareSolverr does not invent a solution
+      ansible.builtin.assert:
+        that:
+          - flaresolverr_verify_unreachable.json.status == 'error'
+          - "'ERR_CONNECTION_REFUSED' in flaresolverr_verify_unreachable.json.message"
+        fail_msg: >-
+          request.get against a port nothing listens on returned
+          {{ flaresolverr_verify_unreachable.json.status | default('nothing') }}:
+          {{ (flaresolverr_verify_unreachable.json.message | default(''))[:200] }}
+        success_msg: "FlareSolverr reports an error for a page it could not fetch"
+
+    # The systemd unit removes and re-creates the container on every start,
+    # through a pre-start cleanup command that waits for Docker to release the
+    # container name. This is also the shape of what a version bump does to a
+    # running installation, and FlareSolverr keeps nothing across it.
+    - name: Restart flaresolverr.service
+      ansible.builtin.systemd_service:
+        name: flaresolverr.service
+        state: restarted
+
+    - name: Wait for FlareSolverr to answer again after the restart (up to 300s)
+      ansible.builtin.uri:
+        url: "{{ flaresolverr_verify_base_url }}/"
+        method: GET
+        status_code: 200
+        follow_redirects: none
+        timeout: 30
+      register: flaresolverr_verify_index_after_restart
+      until: flaresolverr_verify_index_after_restart.status | default(0) == 200
+      retries: 60
+      delay: 5
+
+    - name: Ask FlareSolverr to fetch the sidecar's page again after the restart
+      ansible.builtin.uri:
+        url: "{{ flaresolverr_verify_base_url }}/v1"
+        method: POST
+        body_format: json
+        body:
+          cmd: request.get
+          url: "http://{{ flaresolverr_verify_sidecar_name }}:{{ flaresolverr_verify_sidecar_port }}/probe.html"
+          maxTimeout: 120000
+        status_code: [200, 500]
+        follow_redirects: none
+        timeout: 180
+      register: flaresolverr_verify_solution_after_restart
+      changed_when: false
+
+    - name: Assert the re-created container solves a page as well
+      ansible.builtin.assert:
+        that:
+          - flaresolverr_verify_solution_after_restart.json.status == 'ok'
+          - flaresolverr_verify_rendered_marker in flaresolverr_verify_solution_after_restart.json.solution.response
+        fail_msg: >-
+          After the restart, request.get returned
+          {{ flaresolverr_verify_solution_after_restart.json.status | default('nothing') }}:
+          {{ (flaresolverr_verify_solution_after_restart.json.message | default(''))[:400] }}
+        success_msg: "The re-created container fetches and renders a page too"
+
+    - name: Remove the sidecar web server
+      ansible.builtin.command:
+        cmd: "docker rm -f {{ flaresolverr_verify_sidecar_name }}"
+      changed_when: true
+
+    - name: Show FlareSolverr verification summary
       ansible.builtin.debug:
         msg:
-          - "FlareSolverr systemd: {{ flaresolverr_service.status.ActiveState }}"
-          - "FlareSolverr HTTP: {{ flaresolverr_endpoint.status }}"
+          - "systemd: {{ flaresolverr_verify_service.status.ActiveState }}, restarts before the deliberate one: {{ flaresolverr_verify_service.status.NRestarts }}"
+          - "version: {{ flaresolverr_verify_index.json.version }} (pinned: {{ flaresolverr_verify_role_defaults.flaresolverr_version }})"
+          - "user agent: {{ flaresolverr_verify_index.json.userAgent }}"
+          - "timezone in the container: {{ flaresolverr_verify_timezone.stdout | trim }}"
+          - "session created and destroyed: {{ flaresolverr_verify_session_creation.json.session }}"
+          - "probe page: {{ flaresolverr_verify_solution.json.status }}, missing page: {{ flaresolverr_verify_absent.json.status }}, unreachable page: {{ flaresolverr_verify_unreachable.json.status }}"

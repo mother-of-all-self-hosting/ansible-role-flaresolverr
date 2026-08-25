@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: 2018-2025 Slavi Pantaleev
+SPDX-FileCopyrightText: 2018-2026 Slavi Pantaleev
 SPDX-FileCopyrightText: 2019-2022 Aaron Raimist
 SPDX-FileCopyrightText: 2019-2023 MDAD project contributors
 SPDX-FileCopyrightText: 2023 QEDeD
@@ -47,7 +47,11 @@ Currently there is one testing scenario available.
 
 ### `default`
 
-Tests a standard FlareSolverr installation.
+Tests a standard FlareSolverr installation, and then makes it actually solve a page.
+
+FlareSolverr is a headless Chromium behind a JSON API, and almost every surface it offers will answer happily while the browser is broken: `/health` is a hard-coded `{"status": "ok"}` that never touches the browser, `GET /` returns a user agent it cached during startup, and `request.get` reports `"status": "ok"` with `solution.status` 200 even for Chromium's own error pages. The scenario therefore starts a sidecar web server on the role's container network — running the very image the role deployed, so nothing extra is pulled — and asks FlareSolverr to fetch a page from it whose marker text is painted in by JavaScript over a placeholder saying the opposite. Getting that marker back means a real browser really fetched and really executed the page. The same request against a page the sidecar does not have, and against a port nothing listens on, establishes that not just any answer passes.
+
+The scenario also asserts that the version FlareSolverr reports equals `flaresolverr_version` from `defaults/main.yml` (as does the running image's OCI version label), that the unit has not been restarting (`Restart=always` makes even a crash-looping container report `active`), that the container is unprivileged with all capabilities dropped, that a volume from `flaresolverr_container_additional_volumes_custom` really reached the container, and that browser sessions can be created, listed and destroyed. The port and the timezone it uses are deliberately not the defaults, so they can only have arrived through the `env` file this role renders.
 
 ## Running
 

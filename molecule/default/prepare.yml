@@ -1,3 +1,4 @@
+# SPDX-FileCopyrightText: 2026 Slavi Pantaleev
 # SPDX-FileCopyrightText: 2026 spatterlight
 # SPDX-FileCopyrightText: 2026 Suguru Hirahara
 #
@@ -20,6 +21,24 @@
         name:
           - python3-requests
         state: present
+
+    - name: Ensure the FlareSolverr Molecule test directory exists
+      ansible.builtin.file:
+        path: "{{ flaresolverr_molecule_path }}"
+        state: directory
+        mode: "0755"
+
+    # Bind-mounted into the container through
+    # `flaresolverr_container_additional_volumes_custom`. Docker creates a
+    # directory at a bind source that does not exist, so this has to be a file
+    # before the systemd unit first starts, and readable by the unprivileged
+    # user the container runs as.
+    - name: Ensure the marker file the role bind-mounts into the container exists
+      ansible.builtin.copy:
+        content: |
+          molecule-additional-volume-marker
+        dest: "{{ flaresolverr_molecule_path }}/marker"
+        mode: "0644"
 
     - name: Ensure Docker is installed for FlareSolverr Molecule tests preparation
       ansible.builtin.include_role:

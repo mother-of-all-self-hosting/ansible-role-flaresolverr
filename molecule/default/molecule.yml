@@ -1,3 +1,4 @@
+# SPDX-FileCopyrightText: 2026 Slavi Pantaleev
 # SPDX-FileCopyrightText: 2026 spatterlight
 # SPDX-FileCopyrightText: 2026 Suguru Hirahara
 #
@@ -31,12 +32,38 @@ provisioner:
         # Helper variables
         flaresolverr_debug_service_enabled: false
 
+        # Where prepare.yml puts the files verify.yml needs on the host: the
+        # marker file the role bind-mounts into the container, and the document
+        # root of the sidecar web server the browser is pointed at.
+        flaresolverr_molecule_path: /opt/molecule-flaresolverr
+
         # Variables for FlareSolverr
         flaresolverr_uid: 1000
         flaresolverr_gid: 1000
         flaresolverr_hostname: localhost
         flaresolverr_container_labels_traefik_enabled: false
-        flaresolverr_container_http_host_bind_port: 8191
+
+        # Deliberately not FlareSolverr's own default of 8191. The port the
+        # process listens on reaches it only through PORT in the env file this
+        # role renders, so every HTTP check in verify.yml fails if the role's
+        # configuration did not arrive - an instance the role did not configure
+        # would still be on 8191 and nothing would answer here.
+        flaresolverr_container_http_port: 8291
+        flaresolverr_container_http_host_bind_port: 8291
+
+        # Likewise not the role's default of UTC, so that the timezone verify.yml
+        # reads back out of the container can only have come from the env file.
+        flaresolverr_environment_variables_tz: Asia/Tokyo
+
+        # `flaresolverr_container_additional_volumes` is documented as a way to
+        # mount your own files into the container, which is only true for as long
+        # as the systemd unit template keeps rendering it. verify.yml checks that
+        # this mount really reached the container.
+        flaresolverr_container_additional_volumes_custom:
+          - type: bind
+            src: "{{ flaresolverr_molecule_path }}/marker"
+            dst: /config/molecule-marker
+            options: readonly
   env:
     # Workaround for https://github.com/ansible/molecule/issues/4391
     ANSIBLE_ROLES_PATH: ${MOLECULE_PROJECT_DIRECTORY}/..:/.ansible/roles:/usr/share/ansible/roles:/etc/ansible/roles:~/.ansible/roles

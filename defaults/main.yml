@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2023, 2024 Nikita Chernyi
-# SPDX-FileCopyrightText: 2023-2025 Slavi Pantaleev
+# SPDX-FileCopyrightText: 2023-2026 Slavi Pantaleev
 # SPDX-FileCopyrightText: 2024 Sergio Durigan Junior
 # SPDX-FileCopyrightText: 2025 MASH project contributors
 # SPDX-FileCopyrightText: 2025 sudo-Tiz
@@ -153,9 +153,6 @@ flaresolverr_container_cleanup_command: |
 
 # Specify the timezone
 flaresolverr_environment_variables_tz: UTC
-
-# Specify the URL against which FlareSolverr makes a request on start to make sure the web browser is working
-flaresolverr_environment_variables_test_url: https://example.com
 
 # Additional environment variables.
 flaresolverr_environment_variables_additional_variables: ""

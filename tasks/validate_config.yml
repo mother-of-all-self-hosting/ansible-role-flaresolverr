@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2023 Slavi Pantaleev
+# SPDX-FileCopyrightText: 2023, 2026 Slavi Pantaleev
 # SPDX-FileCopyrightText: 2025 sudo-Tiz
 # SPDX-FileCopyrightText: 2025, 2026 Suguru Hirahara
 #
@@ -15,6 +15,7 @@
     - { "old": "flaresolverr_container_http_bind_port", "new": "flaresolverr_container_http_host_bind_port" }
     - { "old": "flaresolverr_container_additional_environment_variables", "new": "flaresolverr_environment_variables_additional_variables" }
     - { "old": "flaresolverr_container_image_force_pull", "new": "<removed> (the new community.docker.docker_image_pull module handles this natively)" }
+    - { "old": "flaresolverr_environment_variables_test_url", "new": "<removed> (FlareSolverr does not read TEST_URL; its startup browser check makes no HTTP request at all)" }
 
 - name: Fail if required FlareSolverr settings not defined
   ansible.builtin.fail:

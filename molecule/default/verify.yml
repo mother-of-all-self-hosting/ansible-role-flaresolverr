@@ -80,7 +80,7 @@
     # linting environment in CI has no collections beyond the built-in ones.
     - name: Inspect the FlareSolverr container
       ansible.builtin.command:
-        cmd: "docker inspect {{ flaresolverr_verify_role_defaults.flaresolverr_identifier }}"
+        cmd: "docker container inspect {{ flaresolverr_verify_role_defaults.flaresolverr_identifier }}"
       changed_when: false
       register: flaresolverr_verify_inspect_result
 

@@ -39,7 +39,7 @@
     - name: Read the role's defaults for the pinned FlareSolverr version
       ansible.builtin.include_vars:
         file: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/defaults/main.yml"
-        name: flaresolverr_verify_role_defaults
+        name: flaresolverr_defaults
 
     - name: Wait for flaresolverr.service to become active (up to 180s)
       ansible.builtin.systemd_service:
@@ -80,7 +80,7 @@
     # linting environment in CI has no collections beyond the built-in ones.
     - name: Inspect the FlareSolverr container
       ansible.builtin.command:
-        cmd: "docker container inspect {{ flaresolverr_verify_role_defaults.flaresolverr_identifier }}"
+        cmd: "docker container inspect {{ flaresolverr_defaults.flaresolverr_identifier }}"
       changed_when: false
       register: flaresolverr_verify_inspect_result
 
@@ -105,7 +105,7 @@
     # long as the systemd unit template keeps rendering it into `docker create`.
     - name: Read the marker file the role bind-mounted into the container
       ansible.builtin.command:
-        cmd: "docker exec {{ flaresolverr_verify_role_defaults.flaresolverr_identifier }} cat /config/molecule-marker"
+        cmd: "docker exec {{ flaresolverr_defaults.flaresolverr_identifier }} cat /config/molecule-marker"
       changed_when: false
       # So that a mount which never arrived is reported by the assertion below,
       # with its explanation, rather than as a bare non-zero exit from `cat`.
@@ -125,7 +125,7 @@
     # scenario, and reaches the container only through the role's env file.
     - name: Read the timezone in force inside the container
       ansible.builtin.command:
-        cmd: "docker exec {{ flaresolverr_verify_role_defaults.flaresolverr_identifier }} date +%Z"
+        cmd: "docker exec {{ flaresolverr_defaults.flaresolverr_identifier }} date +%Z"
       changed_when: false
       register: flaresolverr_verify_timezone
 
@@ -166,10 +166,10 @@
       ansible.builtin.assert:
         that: >-
           flaresolverr_verify_index.json.version ==
-          (flaresolverr_verify_role_defaults.flaresolverr_version | string | regex_replace('^v', ''))
+          (flaresolverr_defaults.flaresolverr_version | string | regex_replace('^v', ''))
         fail_msg: >-
           FlareSolverr reports version {{ flaresolverr_verify_index.json.version | default('unknown') }},
-          but defaults/main.yml pins {{ flaresolverr_verify_role_defaults.flaresolverr_version }}
+          but defaults/main.yml pins {{ flaresolverr_defaults.flaresolverr_version }}
         success_msg: >-
           FlareSolverr runs {{ flaresolverr_verify_index.json.version }},
           as pinned in defaults/main.yml
@@ -180,11 +180,11 @@
       ansible.builtin.assert:
         that: >-
           flaresolverr_verify_container.Config.Labels['org.opencontainers.image.version'] ==
-          (flaresolverr_verify_role_defaults.flaresolverr_version | string)
+          (flaresolverr_defaults.flaresolverr_version | string)
         fail_msg: >-
           The running image is labelled
           {{ flaresolverr_verify_container.Config.Labels['org.opencontainers.image.version'] | default('unlabelled') }},
-          but defaults/main.yml pins {{ flaresolverr_verify_role_defaults.flaresolverr_version }}
+          but defaults/main.yml pins {{ flaresolverr_defaults.flaresolverr_version }}
         success_msg: "The running image is labelled with the version defaults/main.yml pins"
 
     # FlareSolverr caches the user agent it read out of Chromium during its
@@ -249,7 +249,7 @@
     - name: Wait for the sidecar web server to serve the page (up to 60s)
       ansible.builtin.command:
         cmd: >-
-          docker exec {{ flaresolverr_verify_role_defaults.flaresolverr_identifier }}
+          docker exec {{ flaresolverr_defaults.flaresolverr_identifier }}
           curl --silent --show-error --fail --max-time 5
           http://{{ flaresolverr_verify_sidecar_name }}:{{ flaresolverr_verify_sidecar_port }}/probe.html
       changed_when: false
@@ -525,7 +525,7 @@
       ansible.builtin.debug:
         msg:
           - "systemd: {{ flaresolverr_verify_service.status.ActiveState }}, restarts before the deliberate one: {{ flaresolverr_verify_service.status.NRestarts }}"
-          - "version: {{ flaresolverr_verify_index.json.version }} (pinned: {{ flaresolverr_verify_role_defaults.flaresolverr_version }})"
+          - "version: {{ flaresolverr_verify_index.json.version }} (pinned: {{ flaresolverr_defaults.flaresolverr_version }})"
           - "user agent: {{ flaresolverr_verify_index.json.userAgent }}"
           - "timezone in the container: {{ flaresolverr_verify_timezone.stdout | trim }}"
           - "session created and destroyed: {{ flaresolverr_verify_session_creation.json.session }}"

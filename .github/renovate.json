@@ -8,7 +8,7 @@
     "The tags support this too: ghcr.io/flaresolverr/flaresolverr publishes v-prefixed three-component semver (v1.2.0 through v3.5.0), so `patch` is a reachable update type - unlike the two-component streams elsewhere in this fleet, where `matchUpdateTypes: [\"patch\"]` can never fire. The only other things in the tag list are `latest`, a dozen `pr-<number>` build tags and three `-hotfix` one-offs; with `versioning=semver` on the annotation in defaults/main.yml, `pr-1234` is not a version at all and `v3.3.14-hotfix` reads as a prerelease of 3.3.14, so none of them can be offered as an update."
   ],
   "extends": [
-    "github>mother-of-all-self-hosting/renovate-config#v1.0.0",
-    "github>mother-of-all-self-hosting/renovate-config//patch-automerge#v1.0.0"
+    "github>mother-of-all-self-hosting/renovate-config#v1.1.0",
+    "github>mother-of-all-self-hosting/renovate-config//patch-automerge#v1.1.0"
   ]
 }

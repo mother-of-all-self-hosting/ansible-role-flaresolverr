@@ -506,12 +506,12 @@
         cmd: "docker rm -f {{ flaresolverr_verify_sidecar_name }}"
       changed_when: true
 
-    - name: Show FlareSolverr verification summary
+    - name: Show the FlareSolverr verification summary
       ansible.builtin.debug:
         msg:
-          - "systemd: {{ flaresolverr_verify_service.status.ActiveState }}, restarts before the deliberate one: {{ flaresolverr_verify_service.status.NRestarts }}"
-          - "version: {{ flaresolverr_verify_index.json.version }} (pinned: {{ flaresolverr_defaults.flaresolverr_version }})"
-          - "user agent: {{ flaresolverr_verify_index.json.userAgent }}"
-          - "timezone in the container: {{ flaresolverr_verify_timezone.stdout | trim }}"
-          - "session created and destroyed: {{ flaresolverr_verify_session_creation.json.session }}"
-          - "probe page: {{ flaresolverr_verify_solution.json.status }}, missing page: {{ flaresolverr_verify_absent.json.status }}, unreachable page: {{ flaresolverr_verify_unreachable.json.status }}"
+          - "FlareSolverr systemd: {{ flaresolverr_verify_service.status.ActiveState }}, restarts before the deliberate one: {{ flaresolverr_verify_service.status.NRestarts }}"
+          - "FlareSolverr version: {{ flaresolverr_verify_index.json.version }} (pinned: {{ flaresolverr_defaults.flaresolverr_version }})"
+          - "FlareSolverr user agent: {{ flaresolverr_verify_index.json.userAgent }}"
+          - "FlareSolverr timezone in the container: {{ flaresolverr_verify_timezone.stdout | trim }}"
+          - "FlareSolverr session created and destroyed: {{ flaresolverr_verify_session_creation.json.session }}"
+          - "FlareSolverr probe page: {{ flaresolverr_verify_solution.json.status }}, missing page: {{ flaresolverr_verify_absent.json.status }}, unreachable page: {{ flaresolverr_verify_unreachable.json.status }}"

@@ -155,7 +155,7 @@
     - name: Assert FlareSolverr identifies itself
       ansible.builtin.assert:
         that: flaresolverr_verify_index.json.msg == 'FlareSolverr is ready!'
-        fail_msg: "GET / returned {{ flaresolverr_verify_index.json | default('nothing') }}"
+        fail_msg: "GET / returned {{ flaresolverr_verify_index.json | default('none') }}"
         success_msg: "FlareSolverr answers on the port the role configured"
 
     - name: Assert the running Actual is the version this role installs
@@ -276,7 +276,7 @@
           - flaresolverr_verify_session_creation.json.status == 'ok'
           - flaresolverr_verify_session_creation.json.session | default('') | length > 0
         fail_msg: >-
-          sessions.create returned {{ flaresolverr_verify_session_creation.json.status | default('nothing') }}:
+          sessions.create returned {{ flaresolverr_verify_session_creation.json.status | default('none') }}:
           {{ flaresolverr_verify_session_creation.json.message | default('') }}
         success_msg: "FlareSolverr created a browser session"
 
@@ -301,7 +301,7 @@
           - flaresolverr_verify_session_list.json.status == 'ok'
           - flaresolverr_verify_session_creation.json.session in flaresolverr_verify_session_list.json.sessions
         fail_msg: >-
-          sessions.list returned {{ flaresolverr_verify_session_list.json.sessions | default('nothing') }},
+          sessions.list returned {{ flaresolverr_verify_session_list.json.sessions | default('none') }},
           which does not include {{ flaresolverr_verify_session_creation.json.session }}
         success_msg: "FlareSolverr lists the session that was created"
 
@@ -329,7 +329,7 @@
           - flaresolverr_verify_rendered_marker in flaresolverr_verify_solution.json.solution.response
           - flaresolverr_verify_unrendered_marker not in flaresolverr_verify_solution.json.solution.response
         fail_msg: >-
-          request.get returned {{ flaresolverr_verify_solution.json.status | default('nothing') }}:
+          request.get returned {{ flaresolverr_verify_solution.json.status | default('none') }}:
           {{ (flaresolverr_verify_solution.json.message | default(''))[:400] }}
         success_msg: "The browser fetched the page and the DOM it returned was built by the page's JavaScript"
 
@@ -384,7 +384,7 @@
           - "'is invalid' in flaresolverr_verify_bad_command.json.message"
         fail_msg: >-
           An unknown command returned
-          {{ flaresolverr_verify_bad_command.json.status | default('nothing') }}, expected an error
+          {{ flaresolverr_verify_bad_command.json.status | default('none') }}, expected an error
         success_msg: "FlareSolverr rejects an unknown command"
 
     - name: Destroy the FlareSolverr browser session
@@ -420,7 +420,7 @@
           - flaresolverr_verify_session_creation.json.session not in flaresolverr_verify_session_list_after.json.sessions
         fail_msg: >-
           sessions.list still returns
-          {{ flaresolverr_verify_session_list_after.json.sessions | default('nothing') }} after the destruction
+          {{ flaresolverr_verify_session_list_after.json.sessions | default('none') }} after the destruction
         success_msg: "FlareSolverr destroyed the browser session"
 
     # Without this, a FlareSolverr that answered every request.get with a success
@@ -450,7 +450,7 @@
           - "'ERR_CONNECTION_REFUSED' in flaresolverr_verify_unreachable.json.message"
         fail_msg: >-
           request.get against a port nothing listens on returned
-          {{ flaresolverr_verify_unreachable.json.status | default('nothing') }}:
+          {{ flaresolverr_verify_unreachable.json.status | default('none') }}:
           {{ (flaresolverr_verify_unreachable.json.message | default(''))[:200] }}
         success_msg: "FlareSolverr reports an error for a page it could not fetch"
 
@@ -497,7 +497,7 @@
           - flaresolverr_verify_rendered_marker in flaresolverr_verify_solution_after_restart.json.solution.response
         fail_msg: >-
           After the restart, request.get returned
-          {{ flaresolverr_verify_solution_after_restart.json.status | default('nothing') }}:
+          {{ flaresolverr_verify_solution_after_restart.json.status | default('none') }}:
           {{ (flaresolverr_verify_solution_after_restart.json.message | default(''))[:400] }}
         success_msg: "The re-created container fetches and renders a page too"
 

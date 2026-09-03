@@ -176,7 +176,7 @@
 
     # A second, independent surface for the same claim, and the one that ties the
     # version to the image rather than to what the process says about itself.
-    - name: Assert the image the role deployed is the version defaults/main.yml pins
+    - name: Assert the FlareSolverr image the role deployed is the version defaults/main.yml pins
       ansible.builtin.assert:
         that: >-
           flaresolverr_verify_container.Config.Labels['org.opencontainers.image.version'] ==

@@ -158,11 +158,7 @@
         fail_msg: "GET / returned {{ flaresolverr_verify_index.json | default('nothing') }}"
         success_msg: "FlareSolverr answers on the port the role configured"
 
-    # This is what earns (or denies) an automated version bump: the process
-    # actually running has to be the version the leaf variable Renovate edits
-    # names. FlareSolverr reports it without the leading `v` that its image tags
-    # and `flaresolverr_version` both carry.
-    - name: Assert the running FlareSolverr is the version defaults/main.yml pins
+    - name: Assert the running Actual is the version this role installs
       ansible.builtin.assert:
         that: >-
           flaresolverr_verify_index.json.version ==

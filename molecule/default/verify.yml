@@ -32,11 +32,10 @@
     flaresolverr_verify_volume_marker: molecule-additional-volume-marker
 
   tasks:
-    # Only leaf literals may be read this way, and only for values that describe
-    # the role itself. Anything the scenario tunes has to come from molecule.yml's
-    # group_vars, which an `include_vars` would otherwise outrank - which is why
-    # this goes into a namespace of its own rather than into the play's variables.
-    - name: Read the role's defaults for the pinned FlareSolverr version
+    # The role is not included in this playbook, so its defaults are not in
+    # scope. Reading defaults/main.yml directly ties the version assertion
+    # below.
+    - name: Load the role defaults
       ansible.builtin.include_vars:
         file: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/defaults/main.yml"
         name: flaresolverr_defaults

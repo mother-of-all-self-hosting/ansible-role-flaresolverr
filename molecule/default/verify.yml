@@ -511,7 +511,7 @@
       ansible.builtin.debug:
         msg:
           - "FlareSolverr systemd: {{ flaresolverr_service.status.ActiveState }}, restarts before the deliberate one: {{ flaresolverr_service.status.NRestarts }}"
-          - "FlareSolverr version: {{ flaresolverr_verify_index.json.version }} (pinned: {{ flaresolverr_defaults.flaresolverr_version }})"
+          - "FlareSolverr version: {{ flaresolverr_verify_index.json.version }}"
           - "FlareSolverr user agent: {{ flaresolverr_verify_index.json.userAgent }}"
           - "FlareSolverr timezone in the container: {{ flaresolverr_verify_timezone.stdout | trim }}"
           - "FlareSolverr session created and destroyed: {{ flaresolverr_verify_session_creation.json.session }}"

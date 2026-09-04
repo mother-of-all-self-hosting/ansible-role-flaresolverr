@@ -159,7 +159,7 @@
         fail_msg: "GET / returned {{ flaresolverr_verify_index.json | default('none') }}"
         success_msg: "FlareSolverr answers on the port the role configured"
 
-    - name: Assert the running Actual is the version this role installs
+    - name: Assert the running FlareSolverr is the version this role installs
       ansible.builtin.assert:
         that: flaresolverr_verify_index.json.version == (flaresolverr_defaults.flaresolverr_version | string | regex_replace('^v', ''))
         fail_msg: "FlareSolverr reports {{ flaresolverr_verify_index.json.version| default('none') }}, expected {{ flaresolverr_defaults.flaresolverr_version }}"

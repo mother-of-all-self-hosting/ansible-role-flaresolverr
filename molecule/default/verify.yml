@@ -85,7 +85,7 @@
       changed_when: false
       register: flaresolverr_inspect_result
 
-    - name: Read the FlareSolverr container's configuration
+    - name: Parse the FlareSolverr container definition
       ansible.builtin.set_fact:
         flaresolverr_container: "{{ (flaresolverr_inspect_result.stdout | from_json)[0] }}"
 

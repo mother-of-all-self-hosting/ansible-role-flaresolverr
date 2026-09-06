@@ -83,11 +83,11 @@
       ansible.builtin.command:
         cmd: "docker container inspect {{ flaresolverr_defaults.flaresolverr_identifier }}"
       changed_when: false
-      register: flaresolverr_verify_inspect_result
+      register: flaresolverr_inspect_result
 
     - name: Read the FlareSolverr container's configuration
       ansible.builtin.set_fact:
-        flaresolverr_verify_container: "{{ (flaresolverr_verify_inspect_result.stdout | from_json)[0] }}"
+        flaresolverr_container: "{{ (flaresolverr_inspect_result.stdout | from_json)[0] }}"
 
     # The README promises the container runs unprivileged with every capability
     # dropped. Both come from the systemd unit template and nothing else checks
@@ -95,11 +95,11 @@
     - name: Assert the container runs as the role's unprivileged user with no capabilities
       ansible.builtin.assert:
         that:
-          - flaresolverr_verify_container.Config.User == '1000:1000'
-          - "'ALL' in (flaresolverr_verify_container.HostConfig.CapDrop | default([]))"
+          - flaresolverr_container.Config.User == '1000:1000'
+          - "'ALL' in (flaresolverr_container.HostConfig.CapDrop | default([]))"
         fail_msg: >-
-          The container runs as {{ flaresolverr_verify_container.Config.User | default('?') }}
-          with CapDrop {{ flaresolverr_verify_container.HostConfig.CapDrop | default([]) }}
+          The container runs as {{ flaresolverr_container.Config.User | default('?') }}
+          with CapDrop {{ flaresolverr_container.HostConfig.CapDrop | default([]) }}
         success_msg: "The container runs as 1000:1000 with all capabilities dropped"
 
     # `flaresolverr_container_additional_volumes` is only a real feature for as
@@ -169,9 +169,9 @@
     # version to the image rather than to what the process says about itself.
     - name: Assert the running FlareSolverr is the version this role installs
       ansible.builtin.assert:
-        that: flaresolverr_verify_container.Config.Labels['org.opencontainers.image.version'] == (flaresolverr_defaults.flaresolverr_version | string)
-        fail_msg: "FlareSolverr reports {{ flaresolverr_verify_container.Config.Labels['org.opencontainers.image.version'] | default('none') }}, expected {{ flaresolverr_defaults.flaresolverr_version }}"
-        success_msg: "FlareSolverr reports {{ flaresolverr_verify_container.Config.Labels['org.opencontainers.image.version'] }}"
+        that: flaresolverr_container.Config.Labels['org.opencontainers.image.version'] == (flaresolverr_defaults.flaresolverr_version | string)
+        fail_msg: "FlareSolverr reports {{ flaresolverr_container.Config.Labels['org.opencontainers.image.version'] | default('none') }}, expected {{ flaresolverr_defaults.flaresolverr_version }}"
+        success_msg: "FlareSolverr reports {{ flaresolverr_container.Config.Labels['org.opencontainers.image.version'] }}"
 
     # FlareSolverr caches the user agent it read out of Chromium during its
     # startup check, so this is evidence that a browser did launch at least once.
@@ -223,12 +223,12 @@
           docker run
           --detach
           --name {{ flaresolverr_verify_sidecar_name }}
-          --network {{ flaresolverr_verify_container.HostConfig.NetworkMode }}
+          --network {{ flaresolverr_container.HostConfig.NetworkMode }}
           --user 1000:1000
           --workdir /srv
           --volume {{ flaresolverr_molecule_path }}/www:/srv:ro
           --entrypoint /usr/local/bin/python
-          {{ flaresolverr_verify_container.Config.Image }}
+          {{ flaresolverr_container.Config.Image }}
           -m http.server {{ flaresolverr_verify_sidecar_port }}
       changed_when: true
 

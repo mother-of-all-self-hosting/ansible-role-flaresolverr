@@ -41,25 +41,27 @@
         file: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/defaults/main.yml"
         name: flaresolverr_defaults
 
-    - name: Wait for flaresolverr.service to become active (up to 180s)
+    - name: Wait for the FlareSolverr systemd service to become active (up to 180s)
       ansible.builtin.systemd_service:
         name: flaresolverr.service
-      register: flaresolverr_verify_service
-      until: flaresolverr_verify_service.status.ActiveState == 'active'
+      register: flaresolverr_service
+      until: flaresolverr_service.status.ActiveState == 'active'
       retries: 36
       delay: 5
+      # So that giving up is reported by the assertion below rather than as a
+      # wall of systemd unit properties.
+      failed_when: false
 
-    # The systemd unit carries `Restart=always`, which makes a container that
-    # crashes on every start report `active` all the same. This assertion is here
-    # to fail early with the state printed, not as evidence that FlareSolverr
-    # works - that is what everything below is for.
-    - name: Assert flaresolverr.service is active
+    # `Restart=always` in the systemd unit means that even a container which crashes
+    # and gets restarted reads as active here, so this is a precondition rather than
+    # a result.
+    - name: Assert the FlareSolverr systemd service is active
       ansible.builtin.assert:
         that: flaresolverr_verify_service.status.ActiveState == 'active'
-        fail_msg: "flaresolverr.service not active ({{ flaresolverr_verify_service.status.ActiveState }})"
+        fail_msg: "flaresolverr.service is not active ({{ flaresolverr_verify_service.status.ActiveState }})"
         success_msg: "flaresolverr.service is active"
 
-    - name: Retrieve FlareSolverr service log for debugging
+    - name: Retrieve the FlareSolverr systemd service log for debugging
       when: flaresolverr_debug_service_enabled | bool
       ansible.builtin.command:
         cmd: journalctl -xeu flaresolverr.service

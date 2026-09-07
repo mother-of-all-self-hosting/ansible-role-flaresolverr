@@ -161,17 +161,11 @@
 
     - name: Assert the running FlareSolverr is the version this role installs
       ansible.builtin.assert:
-        that: flaresolverr_verify_index.json.version == (flaresolverr_defaults.flaresolverr_version | string | regex_replace('^v', ''))
+        that:
+          - flaresolverr_container.Config.Labels['org.opencontainers.image.version'] == flaresolverr_defaults.flaresolverr_version | string
+          - flaresolverr_verify_index.json.version == (flaresolverr_defaults.flaresolverr_version | string | regex_replace('^v', ''))
         fail_msg: "FlareSolverr reports {{ flaresolverr_verify_index.json.version| default('none') }}, expected {{ flaresolverr_defaults.flaresolverr_version }}"
         success_msg: "FlareSolverr reports {{ flaresolverr_verify_index.json.version  }}"
-
-    # A second, independent surface for the same claim, and the one that ties the
-    # version to the image rather than to what the process says about itself.
-    - name: Assert the running FlareSolverr is the version this role installs
-      ansible.builtin.assert:
-        that: flaresolverr_container.Config.Labels['org.opencontainers.image.version'] == flaresolverr_defaults.flaresolverr_version | string
-        fail_msg: "FlareSolverr reports {{ flaresolverr_container.Config.Labels['org.opencontainers.image.version'] | default('none') }}, expected {{ flaresolverr_defaults.flaresolverr_version }}"
-        success_msg: "FlareSolverr reports {{ flaresolverr_container.Config.Labels['org.opencontainers.image.version'] }}"
 
     # FlareSolverr caches the user agent it read out of Chromium during its
     # startup check, so this is evidence that a browser did launch at least once.

@@ -65,7 +65,7 @@
         - name: Retrieve the FlareSolverr systemd service log for debugging
           when: flaresolverr_debug_service_enabled | bool
           ansible.builtin.command:
-            cmd: journalctl -xeu flaresolverr.service
+            cmd: journalctl --no-pager --output=cat --unit=flaresolverr.service
           changed_when: false
 
         # What `Restart=always` hides is visible here instead: a unit that has been

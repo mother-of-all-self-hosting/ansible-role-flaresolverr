@@ -216,8 +216,7 @@
         - name: Start a sidecar web server on the FlareSolverr container network
           ansible.builtin.command:
             cmd: >-
-              docker run
-              --detach
+              docker run -d
               --name {{ flaresolverr_verify_sidecar_name }}
               --network {{ flaresolverr_container.HostConfig.NetworkMode }}
               --user 1000:1000

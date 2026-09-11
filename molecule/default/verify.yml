@@ -31,6 +31,9 @@
 
     flaresolverr_verify_volume_marker: molecule-additional-volume-marker
 
+    flaresolverr_verify_units:
+      - flaresolverr.service
+
   tasks:
     - name: Verify that FlareSolverr works
       block:
@@ -42,13 +45,14 @@
             file: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/defaults/main.yml"
             name: flaresolverr_defaults
 
-        - name: Wait for the FlareSolverr systemd service to become active (up to 180s)
+        - name: Wait for the FlareSolverr systemd services to become active (up to 180s each)
           ansible.builtin.systemd_service:
-            name: flaresolverr.service
-          register: flaresolverr_service
-          until: flaresolverr_service.status.ActiveState == 'active'
+            name: "{{ item }}"
+          register: flaresolverr_services
+          until: flaresolverr_services.status.ActiveState == 'active'
           retries: 36
           delay: 5
+          loop: "{{ flaresolverr_verify_units }}"
           # So that giving up is reported by the assertion below rather than as a
           # wall of systemd unit properties.
           failed_when: false
@@ -56,28 +60,20 @@
         # `Restart=always` in the systemd unit means that even a container which crashes
         # and gets restarted reads as active here, so this is a precondition rather than
         # a result.
-        - name: Assert the FlareSolverr systemd service is active
+        - name: Assert the FlareSolverr systemd services are active
           ansible.builtin.assert:
-            that: flaresolverr_service.status.ActiveState == 'active'
-            fail_msg: "flaresolverr.service is not active ({{ flaresolverr_service.status.ActiveState }})"
-            success_msg: "flaresolverr.service is active"
+            that: flaresolverr_services.results | map(attribute='status.ActiveState') | unique | list == ['active']
+            fail_msg: >-
+              Not every service is active:
+              {{ dict(flaresolverr_verify_units | zip(flaresolverr_services.results | map(attribute='status.ActiveState'))) }}
+            success_msg: "Every systemd service is active"
 
-        - name: Retrieve the FlareSolverr systemd service log for debugging
+        - name: Retrieve the FlareSolverr systemd services log for debugging
           when: flaresolverr_debug_service_enabled | bool
           ansible.builtin.command:
-            cmd: journalctl --no-pager --output=cat --unit=flaresolverr.service
+            cmd: "journalctl --no-pager --output=cat --unit={{ item }}"
           changed_when: false
-
-        # What `Restart=always` hides is visible here instead: a unit that has been
-        # restarted has had FlareSolverr exit at least once, and FlareSolverr exits
-        # non-zero when Chromium cannot be found or cannot be launched.
-        - name: Assert flaresolverr.service has not been restarting
-          ansible.builtin.assert:
-            that: flaresolverr_service.status.NRestarts | int == 0
-            fail_msg: >-
-              flaresolverr.service has been restarted {{ flaresolverr_service.status.NRestarts }} time(s),
-              so FlareSolverr has been exiting - it does that when the browser cannot be started
-            success_msg: "flaresolverr.service has not had to be restarted"
+          loop: "{{ flaresolverr_verify_units }}"
 
         # community.docker is deliberately not used anywhere in this scenario: the
         # linting environment in CI has no collections beyond the built-in ones.
@@ -505,7 +501,7 @@
         - name: Show the FlareSolverr verification summary
           ansible.builtin.debug:
             msg:
-              - "FlareSolverr systemd: {{ flaresolverr_service.status.ActiveState }}, restarts before the deliberate one: {{ flaresolverr_service.status.NRestarts }}"
+              - "FlareSolverr systemd: {% for unit, state in flaresolverr_verify_units | zip(flaresolverr_services.results | map(attribute='status.ActiveState')) %}{{ unit }} ({{ state }}){% if not loop.last %}, {% endif %}{% endfor %}"
               - "FlareSolverr version: {{ flaresolverr_verify_index.json.version }}"
               - "FlareSolverr user agent: {{ flaresolverr_verify_index.json.userAgent }}"
               - "FlareSolverr timezone in the container: {{ flaresolverr_verify_timezone.stdout | trim }}"

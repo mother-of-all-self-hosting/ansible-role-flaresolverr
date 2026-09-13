@@ -31,6 +31,7 @@ provisioner:
       all:
         # Helper variables
         flaresolverr_debug_service_enabled: false
+        flaresolverr_restarts_check_enabled: true
 
         # Where prepare.yml puts the files verify.yml needs on the host: the
         # marker file the role bind-mounts into the container, and the document

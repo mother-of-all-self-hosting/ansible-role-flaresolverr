@@ -108,6 +108,12 @@ flaresolverr_container_extra_arguments: "{{ flaresolverr_container_extra_argumen
 flaresolverr_container_extra_arguments_auto: []
 flaresolverr_container_extra_arguments_custom: []
 
+# A list of extra arguments to pass to the process inside the container
+# Example: ['--SOME_ARGUMENT']
+flaresolverr_process_extra_arguments: "{{ flaresolverr_process_extra_arguments_auto + flaresolverr_process_extra_arguments_custom }}"
+flaresolverr_process_extra_arguments_auto: []
+flaresolverr_process_extra_arguments_custom: []
+
 # List of systemd services that the FlareSolverr systemd service depends on
 flaresolverr_systemd_required_services_list: "{{ (flaresolverr_systemd_required_services_list_default + flaresolverr_systemd_required_services_list_auto + flaresolverr_systemd_required_services_list_custom) | unique }}"
 flaresolverr_systemd_required_services_list_default: "{{ [devture_systemd_docker_base_docker_service_name] if devture_systemd_docker_base_docker_service_name else [] }}"

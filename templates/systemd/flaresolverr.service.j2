@@ -41,7 +41,10 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
       {% for arg in flaresolverr_container_extra_arguments %}
       {{ arg }} \
       {% endfor %}
-      {{ flaresolverr_container_image }}
+      {{ flaresolverr_container_image }} \
+      {% for arg in flaresolverr_process_extra_arguments %}
+      {{ arg }} \
+      {% endfor %}
 
 {% for network in flaresolverr_container_additional_networks %}
 ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} network connect {{ network }} {{ flaresolverr_identifier }}

@@ -81,11 +81,11 @@
           ansible.builtin.command:
             cmd: docker container inspect flaresolverr
           changed_when: false
-          register: flaresolverr_inspect_result
+          register: flaresolverr_container_raw
 
         - name: Parse the FlareSolverr container definition
           ansible.builtin.set_fact:
-            flaresolverr_container: "{{ (flaresolverr_inspect_result.stdout | from_json)[0] }}"
+            flaresolverr_container: "{{ (flaresolverr_container_raw.stdout | from_json)[0] }}"
 
         # The README promises the container runs unprivileged with every capability
         # dropped. Both come from the systemd unit template and nothing else checks

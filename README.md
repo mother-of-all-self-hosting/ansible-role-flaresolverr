@@ -19,18 +19,6 @@ Check [`defaults/main.yml`](defaults/main.yml) for the full list of supported op
 
 💡 For an Ansible playbook which integrates this role and makes it easier to use, see the [Mother-of-All-Self-Hosting Ansible playbook](https://github.com/mother-of-all-self-hosting/mash-playbook).
 
-## Limitations
-
-This role configures **FlareSolverr** securely by:
-
-1. Running the container as a non-root user.
-2. Dropping all capabilities.
-
-Due to Dockerfile limitations, the container must run as the **flaresolverr** user (`uid:1000`, `gid:1000`). You can change these values with:
-
-- `flaresolverr_docker_uid`
-- `flaresolverr_docker_gid`
-
 ## Development
 
 ### pre-commit

@@ -183,6 +183,9 @@ flaresolverr_container_cleanup_command: |
 # Specify the timezone
 flaresolverr_environment_variables_tz: UTC
 
+# Specify log level
+flaresolverr_environment_variables_log_level: info
+
 flaresolverr_environment_variables_prometheus_enabled: false
 
 flaresolverr_environment_variables_prometheus_port: 8192

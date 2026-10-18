@@ -108,6 +108,14 @@ curl -s -X POST -H 'Content-Type: application/json' \
 
 You can find the logs in [systemd-journald](https://www.freedesktop.org/software/systemd/man/systemd-journald.service.html) by logging in to the server with SSH and running `journalctl -fu flaresolverr` (or how you/your playbook named the service, e.g. `mash-flaresolverr`).
 
+#### Increase logging verbosity
+
+If you want to increase the verbosity, add the following configuration to your `vars.yml` file:
+
+```yaml
+flaresolverr_environment_variables_log_level: debug
+```
+
 ### Do not trust `/health`
 
 `/health` is a hard-coded `{"status": "ok"}` that never touches the browser, and `GET /` reports a user agent FlareSolverr cached while starting up. Neither notices a browser that has stopped working. A `request.get` like the one above is the only request that tells you anything.

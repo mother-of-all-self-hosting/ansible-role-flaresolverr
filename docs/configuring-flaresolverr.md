@@ -60,6 +60,12 @@ flaresolverr_container_labels_traefik_enabled: true
 
 After adjusting the hostname, make sure to adjust your DNS records to point the domain to your server.
 
+### Integrating with Prometheus (optional)
+
+FlareSolverr can natively expose metrics to Prometheus.
+
+If you are looking for an integration, you can check out the MASH playbook. Refer to [this section of the documentation on the playbook](https://github.com/mother-of-all-self-hosting/mash-playbook/blob/main/docs/services/silverbullet.md#integrating-with-prometheus-optional) for more information.
+
 ### Extending the configuration
 
 There are some additional things you may wish to configure about the service.

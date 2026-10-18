@@ -53,8 +53,16 @@ flaresolverr_container_network_deletion_enabled: true
 # Takes an "<ip>:<port>" or "<port>" value (e.g. "127.0.0.1:2586"), or empty string to not expose.
 flaresolverr_container_http_host_bind_port: ""
 
+# Specify how the metrics container publishes its HTTP port (as defined by `flaresolverr_container_metrics_port`).
+#
+# Takes an "<ip>:<port>" or "<port>" value (e.g. "127.0.0.1:2586"), or empty string to not expose.
+flaresolverr_container_metrics_host_bind_port: ""
+
 # The port number in the container
 flaresolverr_container_http_port: 8191
+
+# The port number of the metrics server in the container
+flaresolverr_container_metrics_port: "{{ flaresolverr_environment_variables_prometheus_port }}"
 
 # A list of additional container networks that the container would be connected to.
 # The role does not create these networks, so make sure they already exist.
@@ -90,6 +98,21 @@ flaresolverr_container_labels_traefik_tls_certResolver: default # noqa var-namin
 flaresolverr_container_labels_traefik_middleware_basic_auth_enabled: false
 # See: https://doc.traefik.io/traefik/reference/routing-configuration/http/middlewares/basicauth/
 flaresolverr_container_labels_traefik_middleware_basic_auth_users: ""
+
+# Controls if labels are added to expose the Prometheus metrics publicly.
+flaresolverr_container_labels_traefik_metrics_enabled: "{{ flaresolverr_environment_variables_prometheus_enabled }}"
+flaresolverr_container_labels_traefik_metrics_hostname: "{{ flaresolverr_hostname }}"
+# The path prefix must either be `/` or not end with a slash (e.g. `/metrics`).
+flaresolverr_container_labels_traefik_metrics_path_prefix: /metrics
+flaresolverr_container_labels_traefik_metrics_rule: "Host(`{{ flaresolverr_container_labels_traefik_metrics_hostname }}`){% if flaresolverr_container_labels_traefik_metrics_path_prefix != '/' %} && PathPrefix(`{{ flaresolverr_container_labels_traefik_metrics_path_prefix }}`){% endif %}"
+flaresolverr_container_labels_traefik_metrics_priority: 0
+flaresolverr_container_labels_traefik_metrics_entrypoints: "{{ flaresolverr_container_labels_traefik_entrypoints }}"
+flaresolverr_container_labels_traefik_metrics_middlewares: []
+flaresolverr_container_labels_traefik_metrics_tls: "{{ flaresolverr_container_labels_traefik_metrics_entrypoints != 'web' }}"
+flaresolverr_container_labels_traefik_metrics_tls_certResolver: "{{ flaresolverr_container_labels_traefik_tls_certResolver }}"  # noqa var-naming
+flaresolverr_container_labels_traefik_metrics_middleware_basic_auth_enabled: false
+# See: https://doc.traefik.io/traefik/reference/routing-configuration/http/middlewares/basicauth/
+flaresolverr_container_labels_traefik_metrics_middleware_basic_auth_users: ""
 
 # flaresolverr_container_labels_additional_labels contains a multiline string with additional labels to add to the container label file.
 # See `../templates/labels.j2` for details.
@@ -159,6 +182,10 @@ flaresolverr_container_cleanup_command: |
 
 # Specify the timezone
 flaresolverr_environment_variables_tz: UTC
+
+flaresolverr_environment_variables_prometheus_enabled: false
+
+flaresolverr_environment_variables_prometheus_port: 8192
 
 # Additional environment variables.
 flaresolverr_environment_variables_additional_variables: ""

@@ -32,6 +32,9 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
       {% if flaresolverr_container_http_host_bind_port %}
       -p {{ flaresolverr_container_http_host_bind_port }}:{{ flaresolverr_container_http_port }} \
       {% endif %}
+      {% if flaresolverr_container_metrics_host_bind_port %}
+      -p {{ flaresolverr_container_metrics_host_bind_port }}:{{ flaresolverr_container_metrics_port }} \
+      {% endif %}
       --env-file={{ flaresolverr_base_path }}/env \
       --label-file={{ flaresolverr_base_path }}/labels \
       --tmpfs=/tmp:rw,noexec,nosuid,size={{ flaresolverr_container_tmpfs_tmp_size }} \

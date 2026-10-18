@@ -102,6 +102,9 @@ curl -s -X POST -H 'Content-Type: application/json' \
   http://127.0.0.1:8191/v1
 ```
 
+>[!NOTE]
+> `/health` is a hard-coded `{"status": "ok"}` that never touches the browser, and `GET /` reports a user agent FlareSolverr cached while starting up. Neither notices a browser that has stopped working. A `request.get` like the one above is the only request that tells you anything.
+
 ## Troubleshooting
 
 ### Check the service's logs
@@ -115,9 +118,3 @@ If you want to increase the verbosity, add the following configuration to your `
 ```yaml
 flaresolverr_environment_variables_log_level: debug
 ```
-
-### Do not trust `/health`
-
-`/health` is a hard-coded `{"status": "ok"}` that never touches the browser, and `GET /` reports a user agent FlareSolverr cached while starting up. Neither notices a browser that has stopped working. A `request.get` like the one above is the only request that tells you anything.
-
-Note also that `POST /v1` answers with HTTP 200 in cases where it did not do what was asked: it is the `status` field of the JSON body that says whether a request succeeded. Chromium's own error pages come back as a perfectly successful `"status": "ok"` response, so a check worth having reads the returned content too.
